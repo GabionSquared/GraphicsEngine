@@ -18,11 +18,12 @@ class Player {
 
 	public:
 	void Init() {
-		image = SDL_LoadBMP("Dog.bmp");
+		image = SDL_LoadBMP("Sunkist.bmp");
 
 		if (!image) {
 			// load failed
-			cout << "reeeeeeeee" << endl;
+
+			cout << "Failed to load dog" << endl;
 		}
 
 		dest.x = 100;
@@ -54,11 +55,12 @@ int Init() {
 		cout << "Error initializing SDL: " << SDL_GetError() << endl;
 		system("pause");
 		// End the program
+
 		return 1;
 	}
 
 	// Create our window
-	window = SDL_CreateWindow("Example", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_SHOWN);
+	window = SDL_CreateWindow("SuperDogSimulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_SHOWN);
 
 	// Make sure creating the window succeeded
 	if (!window) {
