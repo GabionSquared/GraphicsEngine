@@ -1,6 +1,11 @@
 #include <iostream>
 #include <SDL.h>
 
+//SDL2.dll nto found
+//windows key -> Edit the System Enviroment Variables -> Path (under system variables) -> Edit -> New ->
+// C:\Users\40139037\source\repos\GabionSquared\GraphicsEngine\Project1\SDL2\lib\x64
+//this is an awful way of doing this
+
 // You shouldn't really use this statement, but it's fine for small programs
 using namespace std;
 
@@ -12,7 +17,7 @@ class Player {
 	SDL_Surface* image;
 
 	public:
-	int Init() {
+	void Init() {
 		image = SDL_LoadBMP("Dog.bmp");
 
 		if (!image) {
@@ -32,10 +37,9 @@ class Player {
 		dest.h = 240;
 		SDL_BlitScaled(image, NULL, winSurface, &dest);
 		*/
-
 	}
 
-	int Move(int xDif, int yDif) {
+	void Move(int xDif, int yDif) {
 		dest.x += xDif;
 		dest.y += yDif;
 		int result = SDL_BlitSurface(image, NULL, winSurface, &dest);
@@ -74,6 +78,7 @@ int Init() {
 		// End the program
 		return 1;
 	}
+	return -1;
 }
 
 int Kill() {

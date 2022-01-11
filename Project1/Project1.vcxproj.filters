@@ -23,5 +23,8 @@
     <Image Include="..\..\..\..\Downloads\Dog.jpg">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="Dog.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>
