@@ -1,12 +1,35 @@
 #include <iostream>
 #include <SDL.h>
+#include <SDL_image.h>
+#include <string>
 
-//SDL2.dll nto found
-//windows key -> Edit the System Enviroment Variables -> Path (under system variables) -> Edit -> New ->
-// C:\Users\40139037\source\repos\GabionSquared\GraphicsEngine\Project1\SDL2\lib\x64
+//SDL2.dll not found
+// 
+// STEP 1:
+//		CHECK THE DLL IS ACTUALLY THERE
+//		C:\Users\40139037\source\repos\GabionSquared\GraphicsEngine\Project1\SDL2\lib\x64
+// 
+//		if it isn't, download it again
+//			https://www.libsdl.org/download-2.0.php
+//			https://www.libsdl.org/projects/SDL_image/
+// 
+// STEP 2:
+//		FIX PATH
+// 
+//		windows key -> Edit the System Enviroment Variables -> Path (under system variables) -> Edit -> New ->
+//		C:\Users\40139037\source\repos\GabionSquared\GraphicsEngine\Project1\SDL2\lib\x64
 //this is an awful way of doing this
 
-// You shouldn't really use this statement, but it's fine for small programs
+//The application was unable to start correctly (0x000007b)
+//
+//Make sure you're launching from Project1.vcxproj under Debug|x64
+
+//Can't see the full project list
+//
+//got to foldier view in solution explorer (has just the folder and the .sln) and double click on the .sln
+
+
+
 using namespace std;
 
 SDL_Surface* winSurface = NULL;
@@ -18,7 +41,11 @@ class Player {
 
 	public:
 	void Init() {
-		image = SDL_LoadBMP("Sunkist.bmp");
+		//image = SDL_LoadBMP("Sunkist.bmp");
+
+		string path = R"(C:\Users\40139037\source\repos\GabionSquared\GraphicsEngine\Project1\Sunkist.png)";
+
+		image = IMG_Load(path.c_str());
 
 		if (!image) {
 			// load failed
@@ -80,6 +107,9 @@ int Init() {
 		// End the program
 		return 1;
 	}
+
+	int imgFlags = IMG_INIT_PNG;
+
 	return -1;
 }
 
