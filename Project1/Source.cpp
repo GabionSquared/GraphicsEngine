@@ -36,6 +36,81 @@ using namespace std;
 
 SDL_Surface* winSurface = NULL;
 SDL_Window* window = NULL;
+SDL_Renderer* Renderer = NULL;
+int screenWidth = 1280;
+int screenHeight = 720;
+
+class Timer {
+	int startTicks;
+	int pausedTicks;
+	bool paused;
+	bool started;
+
+public:
+	Timer() {
+		startTicks = 0;
+		pausedTicks = 0;
+		paused = false;
+		started = false;
+	}
+
+	void Start() {
+		started = true;
+		paused = false;
+		startTicks = SDL_GetTicks(); //time since SDL was initialised
+		pausedTicks = 0;
+	}
+
+	void Stop() {
+		Timer();
+	}
+
+	void Pause() {
+		if (started && !paused) {
+			paused = true;
+
+			pausedTicks = SDL_GetTicks() - startTicks;
+			//essentially saves the position the timer was at
+
+			startTicks = 0;
+		}
+	}
+	void Unpause() {
+		if (started && paused) {
+			paused = false;
+
+			startTicks = SDL_GetTicks() - pausedTicks;
+			//essentially saves the position the timer was at
+
+			startTicks = 0;
+		}
+	}
+
+	//Say if you start the timer when SDL_GetTicks() reports 5000 ms and then you pause it at 10000ms.
+	//This means the relative time at the time of pausing is 5000ms. If we were to unpause it when
+	//SDL_GetTicks was at 20000, the new start time would be 20000 - 5000ms or 15000ms.
+	//This way the relative time will still be 5000ms away from the current SDL_GetTicks time.
+
+	int getTicks() {
+		//thousandths of a second
+
+		if (started) {
+			if (paused) {
+				return pausedTicks;
+			}
+			else {
+				return SDL_GetTicks() - startTicks;
+			}
+		}
+	}
+
+	bool isPaused() {
+		return paused;
+	}
+	bool isStarted() {
+		return started;
+	}
+};
 
 class Player {
 	SDL_Rect dest;
@@ -70,13 +145,13 @@ class Player {
 	}
 
 	void Move(int xDif, int yDif) {
+
 		dest.x += xDif;
-		dest.y += yDif;
+		dest.y -= yDif;
 		int result = SDL_BlitSurface(image, NULL, winSurface, &dest);
 	}
 
 };
-
 
 int Init() {
 	// Initialize SDL. SDL_Init will return -1 if it fails.
@@ -89,7 +164,7 @@ int Init() {
 	}
 
 	// Create our window
-	window = SDL_CreateWindow("SuperDogSimulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_SHOWN);
+	window = SDL_CreateWindow("SuperDogSimulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenWidth, screenHeight, SDL_WINDOW_SHOWN);
 
 	// Make sure creating the window succeeded
 	if (!window) {
@@ -97,6 +172,9 @@ int Init() {
 		system("pause");
 		// End the program
 		return 1;
+	}
+	else {
+
 	}
 
 	// Get the surface from the window
@@ -139,6 +217,12 @@ int main(int argc, char** args) {
 
 	SDL_FillRect(winSurface, NULL, SDL_MapRGB(winSurface->format, 255, 255, 255));
 
+	//framerate things
+	Timer FramerateTimer;
+	FramerateTimer.Start();
+	int framesPassed = 0;
+	float AvgFPS;
+
 	//-----------------------------------code goes in here-------------------------------------------------
 
 	Player plr;
@@ -150,42 +234,42 @@ int main(int argc, char** args) {
 	while (running) {
 		// Event loop
 		while (SDL_PollEvent(&ev) != 0) {
-			// check event type
-			switch (ev.type) {
-			case SDL_QUIT:
-				Kill();
+			//User requests quit
+			if (ev.type == SDL_QUIT)
+			{
 				running = false;
-				break;
-
-			case SDL_KEYDOWN:
-				// test keycode
-				switch (ev.key.keysym.sym) {
-				case SDLK_w:
-					plr.Move(10, 0);
-
-					break;
-				case SDLK_s:
-					plr.Move(-10, 0);
-					break;
-					// etc
-				}
-				case SDLK_a:
-					plr.Move(0, 10);
-
-					break;
-				case SDLK_d:
-					plr.Move(0, -10);
-					break;
-					// etc
-				}
 			}
 		}
 
-		// Wait before next frame
-		SDL_Delay(16.7); //(60 fps in ms)
+		const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
+		//list of scancodes: https://wiki.libsdl.org/SDL_Scancode
+
+		if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W])
+		{
+			plr.Move(0, 10);
+		}
+		else if (currentKeyStates[SDL_SCANCODE_DOWN] || currentKeyStates[SDL_SCANCODE_S])
+		{
+			plr.Move(0, -10);
+		}
+		if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A])
+		{
+			plr.Move(-10, 0);
+		}
+		else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D])
+		{
+			plr.Move(10, 0);
+		}
+
+
+		//SDL_Delay(16.7);
+
 		// Draw the next frame
 		SDL_UpdateWindowSurface(window);
-
+		framesPassed++;
+		AvgFPS = framesPassed / (FramerateTimer.getTicks() / 1000.f);
+		cout << framesPassed <<" | " << FramerateTimer.getTicks() <<" | " << (FramerateTimer.getTicks() / 1000.f) <<" | " << AvgFPS << endl;
+	}
 	
 	//-----------------------------------------------------------------------------------------------------
 
