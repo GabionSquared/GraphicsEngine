@@ -3,6 +3,8 @@
 #include <SDL_image.h>
 #include <string>
 
+//https://lazyfoo.net/tutorials/SDL/01_hello_SDL/windows/msvc2019/index.php
+// 
 //SDL2.dll not found
 // 
 // STEP 1:
@@ -16,7 +18,7 @@
 // STEP 2:
 //		FIX PATH
 // 
-//		windows key -> Edit the System Enviroment Variables -> Path (under system variables) -> Edit -> New ->
+//		windows key -> Edit Enviroment Variables For Your Account -> Path (under system variables) -> Edit -> New ->
 //		C:\Users\40139037\source\repos\GabionSquared\GraphicsEngine\Project1\SDL2\lib\x64
 //this is an awful way of doing this
 
