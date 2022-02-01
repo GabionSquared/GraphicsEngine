@@ -63,7 +63,7 @@ typedef void *SDL_MetalView;
  * \sa SDL_Metal_DestroyView
  * \sa SDL_Metal_GetLayer
  */
-extern DECLSPEC SDL_MetalView SDLCALL SDL_Metal_CreateView(SDL_Window * window);
+extern DECLSPEC SDL_MetalView SDLCALL SDL_Metal_CreateView(SDL_Window * Window);
 
 /**
  * Destroy an existing SDL_MetalView object.

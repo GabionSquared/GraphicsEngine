@@ -834,7 +834,7 @@ extern DECLSPEC void SDLCALL SDL_SetWindowTitle(SDL_Window * window,
  *
  * \sa SDL_SetWindowTitle
  */
-extern DECLSPEC const char *SDLCALL SDL_GetWindowTitle(SDL_Window * window);
+extern DECLSPEC const char *SDLCALL SDL_GetWindowTitle(SDL_Window * Window);
 
 /**
  * Set the icon for a window.
@@ -1189,7 +1189,7 @@ extern DECLSPEC void SDLCALL SDL_MinimizeWindow(SDL_Window * window);
  * \sa SDL_MaximizeWindow
  * \sa SDL_MinimizeWindow
  */
-extern DECLSPEC void SDLCALL SDL_RestoreWindow(SDL_Window * window);
+extern DECLSPEC void SDLCALL SDL_RestoreWindow(SDL_Window * Window);
 
 /**
  * Set a window's fullscreen state.
@@ -1414,7 +1414,7 @@ extern DECLSPEC SDL_Window * SDLCALL SDL_GetGrabbedWindow(void);
  * \sa SDL_GetWindowMouseRect
  * \sa SDL_SetWindowMouseGrab
  */
-extern DECLSPEC int SDLCALL SDL_SetWindowMouseRect(SDL_Window * window, const SDL_Rect * rect);
+extern DECLSPEC int SDLCALL SDL_SetWindowMouseRect(SDL_Window * Window, const SDL_Rect * rect);
 
 /**
  * Get the mouse confinement rectangle of a window.

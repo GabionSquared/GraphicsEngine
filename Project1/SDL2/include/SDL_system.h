@@ -161,7 +161,7 @@ extern DECLSPEC int SDLCALL SDL_LinuxSetThreadPriorityAndPolicy(Sint64 threadID,
 /* Platform specific functions for iOS */
 #ifdef __IPHONEOS__
 
-#define SDL_iOSSetAnimationCallback(window, interval, callback, callbackParam) SDL_iPhoneSetAnimationCallback(window, interval, callback, callbackParam)
+#define SDL_iOSSetAnimationCallback(window, interval, callback, callbackParam) SDL_iPhoneSetAnimationCallback(Window, interval, callback, callbackParam)
 
 /**
  * Use this function to set the animation callback on Apple iOS.

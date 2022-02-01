@@ -26,6 +26,9 @@
     <Image Include="Dog.bmp">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="RedSquare.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.28.29910\include\__msvc_system_error_abi.hpp">
