@@ -148,9 +148,8 @@
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\..\Downloads\Dog.jpg" />
-    <Image Include="Dog.bmp" />
     <Image Include="RedSquare.png" />
+    <Image Include="Sunkist.png" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.28.29910\include\ammintrin.h" />

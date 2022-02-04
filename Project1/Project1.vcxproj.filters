@@ -20,13 +20,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\..\Downloads\Dog.jpg">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="Dog.bmp">
-      <Filter>Resource Files</Filter>
-    </Image>
     <Image Include="RedSquare.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Sunkist.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

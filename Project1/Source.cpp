@@ -2,11 +2,11 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <string>
-#include <list> //for the renderqueue
+#include <list> //Linked list library for the renderqueue
 
 #pragma region Compiler Debugging
 //https://lazyfoo.net/tutorials/SDL/01_hello_SDL/windows/msvc2019/index.php
-// 
+
 //SDL2.dll not found
 // 
 // STEP 1:
@@ -34,12 +34,14 @@
 
 //Can't see the full project list
 //
-//got to foldier view in solution explorer (has just the folder and the .sln) and double click on the .sln
+//got to folder view in solution explorer (has just the folder and the .sln) and double click on the .sln
 #pragma endregion Compiler Debugging
 
 SDL_Surface* winSurface = NULL;
 SDL_Window* Window = NULL;
 SDL_Renderer* Renderer = NULL;
+//int screenWidth = 1280;
+//int screenHeight = 720;
 int screenWidth = 1280;
 int screenHeight = 720;
 
@@ -71,7 +73,8 @@ int Init() {
 		return 1;
 	}
 
-	SDL_SetRenderDrawColor(Renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+	//SDL_SetRenderDrawColor(Renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+	SDL_SetRenderDrawColor(Renderer, 100, 100, 100, 0xFF);
 	//background colour
 
 	// Get the surface from the window
@@ -86,31 +89,47 @@ int Init() {
 	}
 
 	int imgFlags = IMG_INIT_PNG;
+	if (!(IMG_Init(imgFlags) & imgFlags))
+	{
+		printf("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
+	}
 
 	return -1;
 }
 
-SDL_Texture* loadTex(std::string path) {
+double TowardZero(double num, double strength) {
+	if (num == 0) return 0;
+	else return num > 0 ? num - strength : num + strength;
+}
 
-	SDL_Texture* finalTex = NULL;
+SDL_Texture* LoadTexture(std::string path)
+{
+	//The final texture
+	SDL_Texture* newTexture = NULL;
 
-	SDL_Surface* loadingSurf = IMG_Load(path.c_str());
-	//path needs to be turned into a character list... i think?
-
-	if (!loadingSurf) {
-		std::cout << "Error getting surface: " << SDL_GetError() << std::endl;
+	//Load image at specified path
+	SDL_Surface* loadedSurface = IMG_Load(path.c_str());
+	if (loadedSurface == NULL)
+	{
+		printf("Unable to load image %s! SDL_image Error: %s\n", path.c_str(), IMG_GetError());
 	}
-	else {
-		//use the renderer to turn the surface into a texture
-		finalTex = SDL_CreateTextureFromSurface(Renderer, loadingSurf);
-
-		if (!finalTex) {
-			std::cout << "Error creating texture from surface: " << SDL_GetError() << std::endl;
+	else
+	{
+		//Create texture from surface pixels
+		newTexture = SDL_CreateTextureFromSurface(Renderer, loadedSurface);
+		if (newTexture == NULL)
+		{
+			printf("Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError());
 		}
 
-		SDL_FreeSurface(loadingSurf);
+		//Get rid of old loaded surface
+		SDL_FreeSurface(loadedSurface);
 	}
-	return finalTex;
+	SDL_RenderCopy(Renderer, newTexture, NULL, NULL);
+
+	//SDL_DestroyTexture( Texture );
+
+	return newTexture;
 }
 
 class Timer {
@@ -164,7 +183,7 @@ public:
 	//SDL_GetTicks was at 20000, the new start time would be 20000 - 5000ms or 15000ms.
 	//This way the relative time will still be 5000ms away from the current SDL_GetTicks time.
 
-	int getTicks() {
+	int GetTicks() {
 		//thousandths of a second
 
 		if (started) {
@@ -180,59 +199,177 @@ public:
 		}
 	}
 
-	bool isPaused() {
+	bool IsPaused() {
 		return paused;
 	}
-	bool isStarted() {
+	bool IsStarted() {
 		return started;
 	}
 };
 
 class Renderable {
+protected:
 	SDL_Rect* dest = new SDL_Rect;
 	SDL_Texture* Texture;
 
 public:
-	SDL_Rect* getDest() {
+	SDL_Rect* GetDest() {
 		return dest;
 	}
 
-	std::string getDestVerbose() {
+	std::string GetDestVerbose() {
 		return "x: " + std::to_string(dest->x) + "   y: " + std::to_string(dest->y);
 	}
 
-	void setDest(int x, int y) {
+	void SetDest(int x, int y) {
 		dest->x = x;
 		dest->y = y;
 	}
 
-	SDL_Texture* getText() {
+	SDL_Texture* GetText() {
 		return Texture;
 	}
 
-	void setText(SDL_Texture* tex) {
+	void SetText(SDL_Texture* tex) {
 		Texture = tex;
+		SDL_Point size;
+		SDL_QueryTexture(tex, NULL, NULL, &size.x, &size.y);
+		dest->w = size.x;
+		dest->h = size.y;
+		std::cout << "width: " << dest->w;
+	}
+
+	void Update() {
+
 	}
 
 	Renderable() {
 
-		std::string path = R"(C:\Users\40139037\source\repos\GabionSquared\GraphicsEngine\Project1\Sunkist.png)";
-		Texture = loadTex(path);
+		//std::string path = R"(C:\Users\40139037\source\repos\GabionSquared\GraphicsEngine\Project1\Sunkist.png)";
+		std::string path = R"(Sunkist.png)";
 
-		setDest(100, 50);
+		SetText(LoadTexture(path));
 
-		//int result = SDL_BlitSurface(image, NULL, winSurface, &dest);
+		SetDest(100, 50);
 	}
-
-	void Move(int xDif, int yDif) {
-
-		dest->x += xDif;
-		dest->y -= yDif;
-	}
-
 };
 
-static class RenderQueueManager {
+class Moveable : public Renderable {
+protected:
+	int velocityX;
+	int velocityY;
+
+	int maxVelocityX;
+	int maxVelocityY;
+	
+	bool boarderCap;
+
+public:
+	Moveable(){
+		velocityX = 0;
+		velocityY = 0;
+
+		maxVelocityX = 10;
+		maxVelocityY = 10;
+
+		boarderCap = false;
+	}
+
+	void Move(double deltaTime) {
+		dest->x = dest->x + (velocityX * deltaTime);
+		dest->y = dest->y + (velocityY * deltaTime);
+
+		std::cout << "velX: " << velocityX << " | DeltaTime: " << deltaTime << " | Product: " << velocityX * deltaTime << std::endl;
+		std::cout << "velY: " << velocityY << " | DeltaTime: " << deltaTime << " | Product: " << velocityY * deltaTime << std::endl;
+
+		
+		if (boarderCap) {
+			//std::cout << (dest->x < 0) << (dest->x + dest->w > screenWidth);
+			if ((dest->x <= 0) || (dest->x + dest->w >= screenWidth)) {
+				std::cout << "at boundary X\n";
+				dest->x -= velocityX * deltaTime;
+			}
+			if ((dest->y <= 0) || (dest->y + dest->y >= screenHeight)) {
+				std::cout << "at boundary Y\n";
+				dest->y += velocityY * deltaTime;
+			}
+		}
+		
+	}
+
+	void ProcessEvents(const Uint8* currentKeyStates, double deltaTime) {
+
+		if (currentKeyStates[SDL_SCANCODE_UP]    || currentKeyStates[SDL_SCANCODE_W])
+		{
+			velocityY -= maxVelocityY;
+		}
+		if (currentKeyStates[SDL_SCANCODE_DOWN]  || currentKeyStates[SDL_SCANCODE_S])
+		{
+			velocityY += maxVelocityY;
+		}
+		if (currentKeyStates[SDL_SCANCODE_LEFT]  || currentKeyStates[SDL_SCANCODE_A])
+		{
+			velocityX -= maxVelocityX;
+		}
+		if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D])
+		{
+			velocityX += maxVelocityX;
+		}
+
+		/* CHECK EVENT LOOP IF YOU FORGET WHY THIS IS CRINGE
+		* 
+		//remember this function is called INSIDE a for loop iterating through events
+		//if key was pressed but wasn't pressed last frame
+		if (ev.type == SDL_KEYDOWN) {
+
+			switch (ev.key.keysym.sym) {
+			case SDLK_UP:
+			case SDLK_w:
+				velocityY += maxVelocityY; break;
+			case SDLK_DOWN:
+			case SDLK_s:
+				velocityY -= maxVelocityY; break;
+			case SDLK_LEFT:
+			case SDLK_a:
+				velocityX += maxVelocityX; break;
+			case SDLK_RIGHT:
+			case SDLK_d:
+				velocityX -= maxVelocityX; break;
+			}
+		}
+
+		//if key was released
+		if (ev.type == SDL_KEYUP) {
+
+			switch (ev.key.keysym.sym) {
+				case SDLK_UP:
+				case SDLK_w:
+					velocityY -= maxVelocityY; break;
+				case SDLK_DOWN:
+				case SDLK_s:
+					velocityY += maxVelocityY; break;
+				case SDLK_LEFT:
+				case SDLK_a:
+					velocityX -= maxVelocityX; break;
+				case SDLK_RIGHT:
+				case SDLK_d:
+					velocityX += maxVelocityX; break;
+			}
+		}
+		*/
+
+		Update(deltaTime);
+	}
+
+	void Update(double deltaTime) {
+		Move(deltaTime);
+
+		velocityX = TowardZero(velocityX, 10);
+		velocityY = TowardZero(velocityY, 10);
+	}
+};
+
+class RenderQueueManager {
 
 	std::list<Renderable*> Queue;
 
@@ -254,13 +391,16 @@ public:
 
 		SDL_RenderClear(Renderer);
 
+		/*The holy rectangle of debugging
 		SDL_Rect fillRect = { screenWidth / 4, screenHeight / 4, screenWidth / 2, screenHeight / 2 };
 		SDL_SetRenderDrawColor(Renderer, 0xFF, 0x00, 0x00, 0xFF);
 		SDL_RenderFillRect(Renderer, &fillRect);
+		std::cout << "rendering Square\n";
+		*/
 
 		for (auto const& i : Queue) {
-			SDL_RenderCopy(Renderer, i->getText(), NULL, i->getDest());
-			std::cout << "Rendering at " << i->getDestVerbose() << std::endl;
+			SDL_RenderCopy(Renderer, i->GetText(), NULL, i->GetDest());
+			//std::cout << "Rendering at " << i->getDestVerbose() << std::endl;
 		}
 
 		SDL_RenderPresent(Renderer);
@@ -297,13 +437,16 @@ int main(int argc, char** args) {
 	SDL_FillRect(winSurface, NULL, SDL_MapRGB(winSurface->format, 255, 255, 255));
 
 	//framerate things
-	Timer FramerateTimer;
-	FramerateTimer.Start();
+	Timer FramerateCalculator;	//how long game has been loaded
+	Timer FramerateCapper;		//how long frame took to render
+	FramerateCalculator.Start();
 	int framesPassed = 0;
+	int targetFPS = 60;
+	int allowedFrameTicks = 1000 / targetFPS;
 	float AvgFPS;
 	bool showFPS = false;
 	//-----------------------------------code goes in here-------------------------------------------------
-	Renderable* plr = new Renderable();
+	Moveable* plr = new Moveable();
 	RQM.Push(plr);
 
 	SDL_Event ev;
@@ -311,6 +454,11 @@ int main(int argc, char** args) {
 	// Main loop
 	while (running) {
 		// Event loop
+
+		double deltaTime = (double)FramerateCapper.GetTicks()/1000;
+		//std::cout << "deltaTime: " << deltaTime << std::endl;
+		FramerateCapper.Start();
+
 		while (SDL_PollEvent(&ev) != 0) {
 			//User requests quit
 			if (ev.type == SDL_QUIT)
@@ -319,35 +467,30 @@ int main(int argc, char** args) {
 			}
 		}
 
+		/// &ev DOES have keyboard events in it, so can be used for taking keys.
+		/// It's like if you were using a notepad: there's a delay when you hold it and it returns the digial key
+		/// GetKeyboardState is more literal: just a load of booleans, no delays, no values. ignores keyboard type.
+
+
 		const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
 		//list of scancodes: https://wiki.libsdl.org/SDL_Scancode
 
-		if (currentKeyStates[SDL_SCANCODE_UP] || currentKeyStates[SDL_SCANCODE_W])
-		{
-			plr->Move(0, 10);
-		}
-		else if (currentKeyStates[SDL_SCANCODE_DOWN] || currentKeyStates[SDL_SCANCODE_S])
-		{
-			plr->Move(0, -10);
-		}
-		if (currentKeyStates[SDL_SCANCODE_LEFT] || currentKeyStates[SDL_SCANCODE_A])
-		{
-			plr->Move(-10, 0);
-		}
-		else if (currentKeyStates[SDL_SCANCODE_RIGHT] || currentKeyStates[SDL_SCANCODE_D])
-		{
-			plr->Move(10, 0);
-		}
+		plr->ProcessEvents(currentKeyStates, deltaTime);
 
+		int x, y;
+		Uint32 buttons = SDL_GetMouseState(&x, &y);
+		//SDL_Log("Mouse cursor is at %d, %d", x, y);
 
-		//SDL_Delay(16.7);
-
-		// Draw the next frame
 		RQM.Render();
 
 		framesPassed++;
-		AvgFPS = framesPassed / (FramerateTimer.getTicks() / 1000.f);
-		if (showFPS) {std::cout << framesPassed << " | " << FramerateTimer.getTicks() << " | " << (FramerateTimer.getTicks() / 1000.f) << " | " << AvgFPS << std::endl;}
+		AvgFPS = framesPassed / (FramerateCalculator.GetTicks() / 1000.f);
+		if (showFPS) {std::cout << framesPassed << " | " << FramerateCalculator.GetTicks() << " | " << (FramerateCalculator.GetTicks() / 1000.f) << " | " << AvgFPS << std::endl;}
+
+		int frameTicks = FramerateCapper.GetTicks();
+		if (frameTicks < allowedFrameTicks) {
+			SDL_Delay(allowedFrameTicks - frameTicks);
+		}
 	}
 	
 	//-----------------------------------------------------------------------------------------------------
