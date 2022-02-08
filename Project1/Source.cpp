@@ -40,10 +40,10 @@
 SDL_Surface* winSurface = NULL;
 SDL_Window* Window = NULL;
 SDL_Renderer* Renderer = NULL;
-//int screenWidth = 1280;
-//int screenHeight = 720;
 int screenWidth = 1280;
 int screenHeight = 720;
+int targetFPS = 60;
+int allowedFrameTicks = 1000 / targetFPS;
 
 int Init() {
 	// Initialize SDL. SDL_Init will return -1 if it fails.
@@ -98,8 +98,28 @@ int Init() {
 }
 
 double TowardZero(double num, double strength) {
-	if (num == 0) return 0;
-	else return num > 0 ? num - strength : num + strength;
+	return num == 0 || (num < strength ? num*-1 : num) < strength ? 0 : num > strength ? num - strength : num + strength;
+	//if num = 0 or abs(num) < str, return 0. num > str, return num-str. else, return num+str.
+}
+
+double TowardZeroD(double num, double strength) {
+	double abs = num;
+	if (num < 0) {
+		abs = num * -1;
+	}
+	std::cout << "abs: " << abs <<"| str: "<< strength << "\n";
+	if (abs < strength || num == 0) {
+		std::cout << "return 0 \n";
+		return 0;
+	}
+	if (num < strength) {
+		std::cout << "return num+str \n";
+		return num + strength;
+	}
+	if (num > strength) {
+		std::cout << "return num-str \n";
+		return num - strength;
+	}
 }
 
 SDL_Texture* LoadTexture(std::string path)
@@ -236,21 +256,21 @@ public:
 		SDL_QueryTexture(tex, NULL, NULL, &size.x, &size.y);
 		dest->w = size.x;
 		dest->h = size.y;
-		std::cout << "width: " << dest->w;
+		//std::cout << "width: " << dest->w;
 	}
 
 	void Update() {
 
 	}
 
-	Renderable() {
+	Renderable(int x = 100, int y = 50) {
 
 		//std::string path = R"(C:\Users\40139037\source\repos\GabionSquared\GraphicsEngine\Project1\Sunkist.png)";
 		std::string path = R"(Sunkist.png)";
 
 		SetText(LoadTexture(path));
 
-		SetDest(100, 50);
+		SetDest(x, y);
 	}
 };
 
@@ -261,37 +281,62 @@ protected:
 
 	int maxVelocityX;
 	int maxVelocityY;
-	
+
 	bool boarderCap;
+	bool boarderMirroring;
+	bool isMirror;
+	bool hasMirror;
 
 public:
-	Moveable(){
+	Moveable(int x = 100, int y = 50, bool mirror = false) : Renderable(x, y) {
 		velocityX = 0;
 		velocityY = 0;
 
-		maxVelocityX = 10;
-		maxVelocityY = 10;
+		maxVelocityX = 40;
+		maxVelocityY = 40;
+		/// This is attached to the std::round in Move()
+		/// The problem with this is we currently can't move less than 1px a frame
+		/// need a function that can decide to rythmically drop frames.
 
 		boarderCap = false;
+		boarderMirroring = true;
+		isMirror = mirror;
+		hasMirror = false;
 	}
 
 	void Move(double deltaTime) {
-		dest->x = dest->x + (velocityX * deltaTime);
-		dest->y = dest->y + (velocityY * deltaTime);
 
-		std::cout << "velX: " << velocityX << " | DeltaTime: " << deltaTime << " | Product: " << velocityX * deltaTime << std::endl;
-		std::cout << "velY: " << velocityY << " | DeltaTime: " << deltaTime << " | Product: " << velocityY * deltaTime << std::endl;
+		//std::cout << "velX: " << velocityX << " | DeltaTime: " << deltaTime << " | Product: " << velocityX * deltaTime << " | New Position: " << dest->x + (velocityX * deltaTime) << std::endl;
+		//std::cout << "velY: " << velocityY << " | DeltaTime: " << deltaTime << " | Product: " << velocityY * deltaTime << " | New Position: " << dest->y + (velocityY * deltaTime) << std::endl;
 
-		
+		dest->x = std::round(dest->x + (velocityX * deltaTime));
+		dest->y = std::round(dest->y + (velocityY * deltaTime));
+
 		if (boarderCap) {
 			//std::cout << (dest->x < 0) << (dest->x + dest->w > screenWidth);
 			if ((dest->x <= 0) || (dest->x + dest->w >= screenWidth)) {
-				std::cout << "at boundary X\n";
+				//std::cout << "at boundary X\n";
 				dest->x -= velocityX * deltaTime;
+				velocityX = 0;
 			}
-			if ((dest->y <= 0) || (dest->y + dest->y >= screenHeight)) {
-				std::cout << "at boundary Y\n";
-				dest->y += velocityY * deltaTime;
+			if ((dest->y <= 0) || (dest->y + dest->h >= screenHeight)) {
+				//std::cout << "at boundary Y\n";
+				dest->y -= velocityY * deltaTime;
+				velocityY = 0;
+			}
+		}
+
+		if (boarderMirroring || !isMirror) {
+			if ((dest->x <= 0) || (dest->x + dest->w >= screenWidth) || !hasMirror) {
+				Moveable* plr = new Moveable(screenWidth,dest->h,true);
+			}
+			if ((dest->y <= 0) || (dest->y + dest->h >= screenHeight) || !hasMirror) {
+				Moveable* plr = new Moveable(dest->w, screenHeight, true);
+			}
+
+			if (dest->x+dest->w < 0 || dest->x > screenWidth || dest->y + dest->h < 0 || dest->y > screenHeight ) {
+				RQM.Pop();
+				delete this;
 			}
 		}
 		
@@ -367,6 +412,10 @@ public:
 		velocityX = TowardZero(velocityX, 10);
 		velocityY = TowardZero(velocityY, 10);
 	}
+
+	void CreateMirror() {
+
+	}
 };
 
 class RenderQueueManager {
@@ -441,8 +490,6 @@ int main(int argc, char** args) {
 	Timer FramerateCapper;		//how long frame took to render
 	FramerateCalculator.Start();
 	int framesPassed = 0;
-	int targetFPS = 60;
-	int allowedFrameTicks = 1000 / targetFPS;
 	float AvgFPS;
 	bool showFPS = false;
 	//-----------------------------------code goes in here-------------------------------------------------
