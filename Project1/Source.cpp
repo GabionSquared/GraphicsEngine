@@ -2,7 +2,7 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <string>
-#include <list> //Linked list library for the renderqueue
+#include <list> //Linked list library for the renderqueue & activescripts
 
 #pragma region Compiler Debugging
 //https://lazyfoo.net/tutorials/SDL/01_hello_SDL/windows/msvc2019/index.php
@@ -120,6 +120,7 @@ double TowardZeroD(double num, double strength) {
 		std::cout << "return num-str \n";
 		return num - strength;
 	}
+	return -1;
 }
 
 SDL_Texture* LoadTexture(std::string path)
@@ -259,10 +260,6 @@ public:
 		//std::cout << "width: " << dest->w;
 	}
 
-	void Update() {
-
-	}
-
 	Renderable(int x = 100, int y = 50) {
 
 		//std::string path = R"(C:\Users\40139037\source\repos\GabionSquared\GraphicsEngine\Project1\Sunkist.png)";
@@ -274,7 +271,87 @@ public:
 	}
 };
 
-class Moveable : public Renderable {
+class ActiveScript {
+public:
+	ActiveScript() {
+
+	}
+
+	virtual void ProcessEvents(const Uint8* currentKeyStates, double deltaTime) {
+
+	}
+};
+
+class RenderQueueManager {
+
+	std::list<Renderable*> Queue;
+
+public:
+	RenderQueueManager() {
+
+	}
+
+	void Push(Renderable* pl) {
+		Queue.push_front(pl);
+		//adds to the front of the list
+	}
+
+	void Pop() {
+		Queue.pop_front();
+	}
+
+	void Render() {
+
+		SDL_RenderClear(Renderer);
+
+		/*The holy rectangle of debugging
+		SDL_Rect fillRect = { screenWidth / 4, screenHeight / 4, screenWidth / 2, screenHeight / 2 };
+		SDL_SetRenderDrawColor(Renderer, 0xFF, 0x00, 0x00, 0xFF);
+		SDL_RenderFillRect(Renderer, &fillRect);
+		std::cout << "rendering Square\n";
+		*/
+
+		for (auto const& i : Queue) {
+			SDL_RenderCopy(Renderer, i->GetText(), NULL, i->GetDest());
+			//std::cout << "Rendering at " << i->getDestVerbose() << std::endl;
+		}
+
+		SDL_RenderPresent(Renderer);
+
+	}
+};
+RenderQueueManager RQM;
+
+class ActiveScriptManager {
+
+	std::list<ActiveScript*> Queue;
+
+public:
+	ActiveScriptManager() {
+
+	}
+
+	void Push(ActiveScript* pl) {
+		Queue.push_front(pl);
+		//adds to the front of the list
+	}
+
+	void Pop() {
+		Queue.pop_front();
+	}
+
+	void Process(const Uint8* currentKeyStates, double deltaTime) {
+
+
+		for (auto const& i : Queue) {
+			i->ProcessEvents(currentKeyStates, deltaTime);
+		}
+
+	}
+};
+ActiveScriptManager ASM;
+
+class Moveable : public Renderable, public ActiveScript {
 protected:
 	int velocityX;
 	int velocityY;
@@ -288,7 +365,7 @@ protected:
 	bool hasMirror;
 
 public:
-	Moveable(int x = 100, int y = 50, bool mirror = false) : Renderable(x, y) {
+	Moveable(int x = 100, int y = 50, bool mirror = false) : Renderable(x, y){
 		velocityX = 0;
 		velocityY = 0;
 
@@ -335,14 +412,12 @@ public:
 			}
 
 			if (dest->x+dest->w < 0 || dest->x > screenWidth || dest->y + dest->h < 0 || dest->y > screenHeight ) {
-				RQM.Pop();
-				delete this;
+				Kill();
 			}
 		}
-		
 	}
 
-	void ProcessEvents(const Uint8* currentKeyStates, double deltaTime) {
+	void ProcessEvents(const Uint8* currentKeyStates, double deltaTime) override {
 
 		if (currentKeyStates[SDL_SCANCODE_UP]    || currentKeyStates[SDL_SCANCODE_W])
 		{
@@ -406,7 +481,7 @@ public:
 		Update(deltaTime);
 	}
 
-	void Update(double deltaTime) {
+	void Update(double deltaTime){
 		Move(deltaTime);
 
 		velocityX = TowardZero(velocityX, 10);
@@ -416,47 +491,14 @@ public:
 	void CreateMirror() {
 
 	}
-};
 
-class RenderQueueManager {
-
-	std::list<Renderable*> Queue;
-
-public:
-	RenderQueueManager() {
-
-	}
-
-	void Push(Renderable* pl) {
-		Queue.push_front(pl);
-		//adds to the front of the list
-	}
-
-	void Pop() {
-		Queue.pop_front();
-	}
-
-	void Render() {
-
-		SDL_RenderClear(Renderer);
-
-		/*The holy rectangle of debugging
-		SDL_Rect fillRect = { screenWidth / 4, screenHeight / 4, screenWidth / 2, screenHeight / 2 };
-		SDL_SetRenderDrawColor(Renderer, 0xFF, 0x00, 0x00, 0xFF);
-		SDL_RenderFillRect(Renderer, &fillRect);
-		std::cout << "rendering Square\n";
-		*/
-
-		for (auto const& i : Queue) {
-			SDL_RenderCopy(Renderer, i->GetText(), NULL, i->GetDest());
-			//std::cout << "Rendering at " << i->getDestVerbose() << std::endl;
-		}
-
-		SDL_RenderPresent(Renderer);
-
+	void Kill() {
+		RQM.Pop();
+		ASM.Pop();
+		std::cout << "deleting self";
+		delete this;
 	}
 };
-RenderQueueManager RQM;
 
 int Kill() {
 	// Update the window display
@@ -485,7 +527,8 @@ int main(int argc, char** args) {
 
 	SDL_FillRect(winSurface, NULL, SDL_MapRGB(winSurface->format, 255, 255, 255));
 
-	//framerate things
+	//-----------------------------------framerate things-------------------------------------------------
+
 	Timer FramerateCalculator;	//how long game has been loaded
 	Timer FramerateCapper;		//how long frame took to render
 	FramerateCalculator.Start();
@@ -495,6 +538,7 @@ int main(int argc, char** args) {
 	//-----------------------------------code goes in here-------------------------------------------------
 	Moveable* plr = new Moveable();
 	RQM.Push(plr);
+	ASM.Push(plr);
 
 	SDL_Event ev;
 	bool running = true;
@@ -516,13 +560,13 @@ int main(int argc, char** args) {
 
 		/// &ev DOES have keyboard events in it, so can be used for taking keys.
 		/// It's like if you were using a notepad: there's a delay when you hold it and it returns the digial key
-		/// GetKeyboardState is more literal: just a load of booleans, no delays, no values. ignores keyboard type.
+		/// GetKeyboardState is more literal: just a load of booleans, no delays, no values. ignores keyboard type (qwerty, dvorak, etc).
 
 
 		const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
 		//list of scancodes: https://wiki.libsdl.org/SDL_Scancode
 
-		plr->ProcessEvents(currentKeyStates, deltaTime);
+		ASM.Process(currentKeyStates, deltaTime);
 
 		int x, y;
 		Uint32 buttons = SDL_GetMouseState(&x, &y);
