@@ -280,6 +280,9 @@ public:
 	virtual void ProcessEvents(const Uint8* currentKeyStates, double deltaTime) {
 
 	}
+	virtual void Kill() {
+
+	}
 };
 
 class RenderQueueManager {
@@ -351,6 +354,35 @@ public:
 };
 ActiveScriptManager ASM;
 
+class ShadowRealm {
+
+	std::list<ActiveScript*> Queue;
+
+public:
+	ShadowRealm() {
+
+	}
+
+	void Push(ActiveScript* pl) {
+		Queue.push_front(pl);
+		//adds to the front of the list
+	}
+
+	void Pop() {
+		Queue.pop_front();
+	}
+
+	void CleanUp() {
+
+
+		for (auto const& i : Queue) {
+			i->Kill();
+		}
+
+	}
+};
+ShadowRealm SR;
+
 class Moveable : public Renderable, public ActiveScript {
 protected:
 	int velocityX;
@@ -359,15 +391,16 @@ protected:
 	int maxVelocityX;
 	int maxVelocityY;
 
-	bool boarderCap;
-	bool boarderMirroring;
+	bool blockBoarderMovement;
+	bool mirrorsAtBoarders;
 	bool isMirror;
 	bool hasMirror;
+	bool isInGameZone;
 
 public:
-	Moveable(int x = 100, int y = 50, bool mirror = false) : Renderable(x, y){
-		velocityX = 0;
-		velocityY = 0;
+	Moveable(int x = 100, int y = 50, bool mirror = false, int velX = 40, int velY = 40) : Renderable(x, y){
+		velocityX = velX;
+		velocityY = velY;
 
 		maxVelocityX = 40;
 		maxVelocityY = 40;
@@ -375,46 +408,78 @@ public:
 		/// The problem with this is we currently can't move less than 1px a frame
 		/// need a function that can decide to rythmically drop frames.
 
-		boarderCap = false;
-		boarderMirroring = true;
+		blockBoarderMovement = false;
+		mirrorsAtBoarders = true;
 		isMirror = mirror;
 		hasMirror = false;
+		isInGameZone = true;
+
+		RQM.Push(this);
+		ASM.Push(this);
 	}
 
 	void Move(double deltaTime) {
 
+#pragma region moving
 		//std::cout << "velX: " << velocityX << " | DeltaTime: " << deltaTime << " | Product: " << velocityX * deltaTime << " | New Position: " << dest->x + (velocityX * deltaTime) << std::endl;
 		//std::cout << "velY: " << velocityY << " | DeltaTime: " << deltaTime << " | Product: " << velocityY * deltaTime << " | New Position: " << dest->y + (velocityY * deltaTime) << std::endl;
 
 		dest->x = std::round(dest->x + (velocityX * deltaTime));
 		dest->y = std::round(dest->y + (velocityY * deltaTime));
+#pragma endregion
 
-		if (boarderCap) {
-			//std::cout << (dest->x < 0) << (dest->x + dest->w > screenWidth);
+#pragma region countering boarder movement
+		if (blockBoarderMovement) {
 			if ((dest->x <= 0) || (dest->x + dest->w >= screenWidth)) {
-				//std::cout << "at boundary X\n";
 				dest->x -= velocityX * deltaTime;
 				velocityX = 0;
 			}
 			if ((dest->y <= 0) || (dest->y + dest->h >= screenHeight)) {
-				//std::cout << "at boundary Y\n";
 				dest->y -= velocityY * deltaTime;
 				velocityY = 0;
 			}
 		}
+#pragma endregion
 
-		if (boarderMirroring || !isMirror) {
-			if ((dest->x <= 0) || (dest->x + dest->w >= screenWidth) || !hasMirror) {
-				Moveable* plr = new Moveable(screenWidth,dest->h,true);
-			}
-			if ((dest->y <= 0) || (dest->y + dest->h >= screenHeight) || !hasMirror) {
-				Moveable* plr = new Moveable(dest->w, screenHeight, true);
-			}
+#pragma region Mirroring
+		
+		float boarder = 0.3f;
 
-			if (dest->x+dest->w < 0 || dest->x > screenWidth || dest->y + dest->h < 0 || dest->y > screenHeight ) {
-				Kill();
+		if (mirrorsAtBoarders && !isMirror && !hasMirror) {
+			if (dest->x <= 0) {															// Left
+				Moveable* plr = new Moveable((dest->w * boarder) + screenWidth, dest->y, true, velocityX, velocityY);
+				hasMirror = true;
+				isInGameZone = false;
+			}
+			else if (dest->x + dest->w >= screenWidth) {								// Right
+				Moveable* plr = new Moveable((dest->w * boarder) - screenWidth,dest->y,true, velocityX, velocityY);
+				hasMirror = true;
+				isInGameZone = false;
+			}
+			else if (dest->y <= 0) {													// Up
+				Moveable* plr = new Moveable(dest->x, (dest->h * boarder) + screenHeight, true, velocityX, velocityY);
+				hasMirror = true;
+				isInGameZone = false;
+			}
+			else if (dest->y + dest->h >= screenHeight) {								// Down
+				Moveable* plr = new Moveable(dest->x, (dest->h * boarder) - screenHeight, true, velocityX, velocityY);
+				hasMirror = true;
+				isInGameZone = false;
+			}
+			else if (dest->x+dest->w < 0 || dest->x > screenWidth || dest->y + dest->h < 0 || dest->y > screenHeight ) { //completly off edge
+				SR.Push(this);
+			}
+			else {
+				//completly in the game screen
 			}
 		}
+
+		if (dest->x > 0 && dest->x + dest->w < screenWidth && dest->y > 0 && dest->y + dest->h < screenHeight) { //detects completly in screen. This is dumb.
+			isInGameZone = true;
+			isMirror = false;
+			hasMirror = false;
+		}
+#pragma endregion
 	}
 
 	void ProcessEvents(const Uint8* currentKeyStates, double deltaTime) override {
@@ -488,14 +553,10 @@ public:
 		velocityY = TowardZero(velocityY, 10);
 	}
 
-	void CreateMirror() {
-
-	}
-
 	void Kill() {
 		RQM.Pop();
 		ASM.Pop();
-		std::cout << "deleting self";
+		std::cout << "killing";
 		delete this;
 	}
 };
@@ -537,8 +598,6 @@ int main(int argc, char** args) {
 	bool showFPS = false;
 	//-----------------------------------code goes in here-------------------------------------------------
 	Moveable* plr = new Moveable();
-	RQM.Push(plr);
-	ASM.Push(plr);
 
 	SDL_Event ev;
 	bool running = true;
@@ -573,6 +632,9 @@ int main(int argc, char** args) {
 		//SDL_Log("Mouse cursor is at %d, %d", x, y);
 
 		RQM.Render();
+
+		SR.CleanUp();
+
 
 		framesPassed++;
 		AvgFPS = framesPassed / (FramerateCalculator.GetTicks() / 1000.f);
