@@ -100,10 +100,15 @@ int Init() {
 double TowardZero(double num, double strength) {
 	return num == 0 || (num < strength ? num*-1 : num) < strength ? 0 : num > strength ? num - strength : num + strength;
 	//if num = 0 or abs(num) < str, return 0. num > str, return num-str. else, return num+str.
+
+	//this has started causing passive force and i dont know why
 }
 
 double TowardZeroD(double num, double strength) {
 	double abs = num;
+
+	std::cout << TowardZero(num, strength) << std::endl;
+
 	if (num < 0) {
 		abs = num * -1;
 	}
@@ -299,8 +304,15 @@ public:
 		//adds to the front of the list
 	}
 
-	void Pop() {
+	void PopFront() {
 		Queue.pop_front();
+	}
+	void PopBack() {
+		Queue.pop_back();
+	}
+
+	int Count() {
+		return Queue.size();
 	}
 
 	void Render() {
@@ -339,13 +351,18 @@ public:
 		//adds to the front of the list
 	}
 
-	void Pop() {
+	void PopFront() {
 		Queue.pop_front();
+	}
+	void PopBack() {
+		Queue.pop_back();
+	}
+
+	int Count() {
+		return Queue.size();
 	}
 
 	void Process(const Uint8* currentKeyStates, double deltaTime) {
-
-
 		for (auto const& i : Queue) {
 			i->ProcessEvents(currentKeyStates, deltaTime);
 		}
@@ -372,13 +389,34 @@ public:
 		Queue.pop_front();
 	}
 
-	void CleanUp() {
+	int Count() {
+		return Queue.size();
+	}
 
+	void CleanUp(){
 
-		for (auto const& i : Queue) {
-			i->Kill();
+		//can only delete one thing a frame, but at least it works
+		if (Count() > 0) {
+			std::cout << "doing murder " << std::endl;
+			Queue.front()->Kill();
+			Pop();
 		}
 
+		/*
+		int c = 1;
+
+		for (auto const& i : Queue) {
+			if (Count() == 0) {
+				continue;
+			}
+
+			std::cout << "doing murder " << c << std::endl;
+			c++;
+
+			i->Kill();
+			Pop();
+		}
+		*/
 	}
 };
 ShadowRealm SR;
@@ -397,6 +435,9 @@ protected:
 	bool hasMirror;
 	bool isInGameZone;
 
+	float boarder;
+	float defaultBoarder;
+
 public:
 	Moveable(int x = 100, int y = 50, bool mirror = false, int velX = 40, int velY = 40) : Renderable(x, y){
 		velocityX = velX;
@@ -410,9 +451,18 @@ public:
 
 		blockBoarderMovement = false;
 		mirrorsAtBoarders = true;
+		//leave both of these false to be deleted offscreen
 		isMirror = mirror;
 		hasMirror = false;
 		isInGameZone = true;
+
+		defaultBoarder = 0.3f;
+		if (isMirror) {
+			boarder = 0;
+		}
+		else {
+			boarder = defaultBoarder;
+		}
 
 		RQM.Push(this);
 		ASM.Push(this);
@@ -442,43 +492,57 @@ public:
 #pragma endregion
 
 #pragma region Mirroring
-		
-		float boarder = 0.3f;
 
 		if (mirrorsAtBoarders && !isMirror && !hasMirror) {
-			if (dest->x <= 0) {															// Left
-				Moveable* plr = new Moveable((dest->w * boarder) + screenWidth, dest->y, true, velocityX, velocityY);
+			//std::cout << "check ";
+			if (dest->x <= 0 - (dest->w * boarder)) {											   // Left
+				//Moveable* plr = new Moveable((dest->w * boarder) + screenWidth + 10, dest->y, true, velocityX, velocityY);
+				Moveable* plr = new Moveable(screenWidth-1, dest->y, true, velocityX, velocityY);
 				hasMirror = true;
 				isInGameZone = false;
+				//std::cout << "left ";
 			}
-			else if (dest->x + dest->w >= screenWidth) {								// Right
-				Moveable* plr = new Moveable((dest->w * boarder) - screenWidth,dest->y,true, velocityX, velocityY);
+			else if (dest->x + dest->w >= screenWidth + (dest->w * boarder)){						// Right
+				//Moveable* plr = new Moveable((dest->w * boarder) - screenWidth - 10,dest->y,true, velocityX, velocityY);
+				Moveable* plr = new Moveable(screenWidth + 1,dest->y,true, velocityX, velocityY);
 				hasMirror = true;
 				isInGameZone = false;
+				//std::cout << "right ";
 			}
-			else if (dest->y <= 0) {													// Up
-				Moveable* plr = new Moveable(dest->x, (dest->h * boarder) + screenHeight, true, velocityX, velocityY);
+			else if (dest->y <= 0 - (dest->h * boarder)) {													// Up
+				//Moveable* plr = new Moveable(dest->x, (dest->h * boarder) + screenHeight + 1, true, velocityX, velocityY);
+				Moveable* plr = new Moveable(dest->x, screenHeight - 1, true, velocityX, velocityY);
 				hasMirror = true;
 				isInGameZone = false;
+				//std::cout << "up ";
 			}
-			else if (dest->y + dest->h >= screenHeight) {								// Down
-				Moveable* plr = new Moveable(dest->x, (dest->h * boarder) - screenHeight, true, velocityX, velocityY);
+			else if (dest->y + dest->h >= screenHeight + (dest->h * boarder)) {								// Down
+				//Moveable* plr = new Moveable(dest->x, (dest->h * boarder) - screenHeight - 1, true, velocityX, velocityY);
+				Moveable* plr = new Moveable(dest->x, screenHeight + 1, true, velocityX, velocityY);
 				hasMirror = true;
 				isInGameZone = false;
-			}
-			else if (dest->x+dest->w < 0 || dest->x > screenWidth || dest->y + dest->h < 0 || dest->y > screenHeight ) { //completly off edge
-				SR.Push(this);
-			}
-			else {
-				//completly in the game screen
+				//std::cout << "down ";
 			}
 		}
+#pragma endregion
 
+#pragma region ScreenPosition
 		if (dest->x > 0 && dest->x + dest->w < screenWidth && dest->y > 0 && dest->y + dest->h < screenHeight) { //detects completly in screen. This is dumb.
+			//std::cout << "inside ";
 			isInGameZone = true;
 			isMirror = false;
 			hasMirror = false;
+			boarder = defaultBoarder;
 		}
+		else if (dest->x + dest->w < 0 || dest->x > screenWidth || dest->y + dest->h < 0 || dest->y > screenHeight) { //completly off edge
+			SR.Push(this);
+			//std::cout << "outside ";
+		}
+		else {
+			//std::cout << "middling ";
+		}
+
+		std::cout << std::endl;
 #pragma endregion
 	}
 
@@ -549,14 +613,20 @@ public:
 	void Update(double deltaTime){
 		Move(deltaTime);
 
-		velocityX = TowardZero(velocityX, 10);
-		velocityY = TowardZero(velocityY, 10);
+		velocityX = TowardZeroD(velocityX, 20);
+		velocityY = TowardZeroD(velocityY, 20);
 	}
 
 	void Kill() {
-		RQM.Pop();
-		ASM.Pop();
-		std::cout << "killing";
+		if (isMirror) {
+			RQM.PopFront();
+			ASM.PopFront();
+		}
+		else {
+			RQM.PopBack();
+			ASM.PopBack();
+		}
+		//std::cout << "being murdered" << std::endl;
 		delete this;
 	}
 };
@@ -625,6 +695,8 @@ int main(int argc, char** args) {
 		const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
 		//list of scancodes: https://wiki.libsdl.org/SDL_Scancode
 
+		//SDL_Log("Renders: %d\tScripts: %d\tShadow Realm: %d", RQM.Count(), ASM.Count(), SR.Count());
+
 		ASM.Process(currentKeyStates, deltaTime);
 
 		int x, y;
@@ -634,7 +706,6 @@ int main(int argc, char** args) {
 		RQM.Render();
 
 		SR.CleanUp();
-
 
 		framesPassed++;
 		AvgFPS = framesPassed / (FramerateCalculator.GetTicks() / 1000.f);
