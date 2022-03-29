@@ -265,14 +265,14 @@ public:
 		//std::cout << "width: " << dest->w;
 	}
 
-	Renderable(int x = 100, int y = 50) {
+	Renderable(std::string  filename, int x = 100, int y = 50) {
 
-		//std::string path = R"(C:\Users\40139037\source\repos\GabionSquared\GraphicsEngine\Project1\Sunkist.png)";
-		std::string path = R"(Sunkist.png)";
+		//std::string path = R"(Sunkist.png)";
+		std::string path = filename;
 
 		SetText(LoadTexture(path));
 
-		SetDest(x, y);
+		SetDest(x - (dest->w/2), y - (dest->h/2));
 	}
 };
 
@@ -421,7 +421,7 @@ public:
 };
 ShadowRealm SR;
 
-class Moveable : public Renderable, public ActiveScript {
+class Moveable  : public Renderable, public ActiveScript {
 protected:
 	int velocityX;
 	int velocityY;
@@ -438,8 +438,12 @@ protected:
 	float boarder;
 	float defaultBoarder;
 
+	std::string thisfilename;
+
 public:
-	Moveable(int x = 100, int y = 50, bool mirror = false, int velX = 40, int velY = 40) : Renderable(x, y){
+	Moveable(std::string filename, int x = 100, int y = 50, bool mirror = false, int velX = 40, int velY = 40) : Renderable(filename, x, y){
+		thisfilename = filename;
+
 		velocityX = velX;
 		velocityY = velY;
 
@@ -468,7 +472,7 @@ public:
 		ASM.Push(this);
 	}
 
-	void Move(double deltaTime) {
+	virtual void Move(double deltaTime) {
 
 #pragma region moving
 		//std::cout << "velX: " << velocityX << " | DeltaTime: " << deltaTime << " | Product: " << velocityX * deltaTime << " | New Position: " << dest->x + (velocityX * deltaTime) << std::endl;
@@ -497,28 +501,28 @@ public:
 			//std::cout << "check ";
 			if (dest->x <= 0 - (dest->w * boarder)) {											   // Left
 				//Moveable* plr = new Moveable((dest->w * boarder) + screenWidth + 10, dest->y, true, velocityX, velocityY);
-				Moveable* plr = new Moveable(screenWidth-1, dest->y, true, velocityX, velocityY);
+				Moveable* plr = new Moveable(thisfilename, screenWidth-1, dest->y, true, velocityX, velocityY);
 				hasMirror = true;
 				isInGameZone = false;
 				//std::cout << "left ";
 			}
 			else if (dest->x + dest->w >= screenWidth + (dest->w * boarder)){						// Right
 				//Moveable* plr = new Moveable((dest->w * boarder) - screenWidth - 10,dest->y,true, velocityX, velocityY);
-				Moveable* plr = new Moveable(screenWidth + 1,dest->y,true, velocityX, velocityY);
+				Moveable* plr = new Moveable(thisfilename, screenWidth + 1,dest->y,true, velocityX, velocityY);
 				hasMirror = true;
 				isInGameZone = false;
 				//std::cout << "right ";
 			}
 			else if (dest->y <= 0 - (dest->h * boarder)) {													// Up
 				//Moveable* plr = new Moveable(dest->x, (dest->h * boarder) + screenHeight + 1, true, velocityX, velocityY);
-				Moveable* plr = new Moveable(dest->x, screenHeight - 1, true, velocityX, velocityY);
+				Moveable* plr = new Moveable(thisfilename, dest->x, screenHeight - 1, true, velocityX, velocityY);
 				hasMirror = true;
 				isInGameZone = false;
 				//std::cout << "up ";
 			}
 			else if (dest->y + dest->h >= screenHeight + (dest->h * boarder)) {								// Down
 				//Moveable* plr = new Moveable(dest->x, (dest->h * boarder) - screenHeight - 1, true, velocityX, velocityY);
-				Moveable* plr = new Moveable(dest->x, screenHeight + 1, true, velocityX, velocityY);
+				Moveable* plr = new Moveable(thisfilename, dest->x, screenHeight + 1, true, velocityX, velocityY);
 				hasMirror = true;
 				isInGameZone = false;
 				//std::cout << "down ";
@@ -546,7 +550,7 @@ public:
 #pragma endregion
 	}
 
-	void ProcessEvents(const Uint8* currentKeyStates, double deltaTime) override {
+	virtual void ProcessEvents(const Uint8* currentKeyStates, double deltaTime) override {
 
 		if (currentKeyStates[SDL_SCANCODE_UP]    || currentKeyStates[SDL_SCANCODE_W])
 		{
@@ -610,7 +614,7 @@ public:
 		Update(deltaTime);
 	}
 
-	void Update(double deltaTime){
+	virtual void Update(double deltaTime){
 		Move(deltaTime);
 
 		velocityX = TowardZeroD(velocityX, 20);
@@ -628,6 +632,284 @@ public:
 		}
 		//std::cout << "being murdered" << std::endl;
 		delete this;
+	}
+};
+
+class PaddleL : public Moveable {
+public:
+	PaddleL(std::string filename, int x = 100, int y = 50, bool mirror = false, int velX = 40, int velY = 40) : Moveable(filename, x, y, mirror, velX, velY) {
+
+	}
+
+	void Move(double deltaTime) {
+
+		//std::cout << "velY: " << velocityY << " | DeltaTime: " << deltaTime << " | Product: " << velocityY * deltaTime << " | New Position: " << dest->y + (velocityY * deltaTime) << std::endl;
+
+		dest->y = std::round(dest->y + (velocityY * deltaTime));
+
+#pragma region countering boarder movement
+		if (blockBoarderMovement) {
+			if ((dest->x <= 0) || (dest->x + dest->w >= screenWidth)) {
+				dest->x -= velocityX * deltaTime;
+				velocityX = 0;
+			}
+			if ((dest->y <= 0) || (dest->y + dest->h >= screenHeight)) {
+				dest->y -= velocityY * deltaTime;
+				velocityY = 0;
+			}
+		}
+#pragma endregion
+
+#pragma region Mirroring
+
+		if (mirrorsAtBoarders && !isMirror && !hasMirror) {
+			//std::cout << "check ";
+			if (dest->x <= 0 - (dest->w * boarder)) {											   // Left
+				//Moveable* plr = new Moveable((dest->w * boarder) + screenWidth + 10, dest->y, true, velocityX, velocityY);
+				Moveable* plr = new Moveable(thisfilename, screenWidth - 1, dest->y, true, velocityX, velocityY);
+				hasMirror = true;
+				isInGameZone = false;
+				//std::cout << "left ";
+			}
+			else if (dest->x + dest->w >= screenWidth + (dest->w * boarder)) {						// Right
+				//Moveable* plr = new Moveable((dest->w * boarder) - screenWidth - 10,dest->y,true, velocityX, velocityY);
+				Moveable* plr = new Moveable(thisfilename, screenWidth + 1, dest->y, true, velocityX, velocityY);
+				hasMirror = true;
+				isInGameZone = false;
+				//std::cout << "right ";
+			}
+			else if (dest->y <= 0 - (dest->h * boarder)) {													// Up
+				//Moveable* plr = new Moveable(dest->x, (dest->h * boarder) + screenHeight + 1, true, velocityX, velocityY);
+				Moveable* plr = new Moveable(thisfilename, dest->x, screenHeight - 1, true, velocityX, velocityY);
+				hasMirror = true;
+				isInGameZone = false;
+				//std::cout << "up ";
+			}
+			else if (dest->y + dest->h >= screenHeight + (dest->h * boarder)) {								// Down
+				//Moveable* plr = new Moveable(dest->x, (dest->h * boarder) - screenHeight - 1, true, velocityX, velocityY);
+				Moveable* plr = new Moveable(thisfilename, dest->x, screenHeight + 1, true, velocityX, velocityY);
+				hasMirror = true;
+				isInGameZone = false;
+				//std::cout << "down ";
+			}
+		}
+#pragma endregion
+
+#pragma region ScreenPosition
+		if (dest->x > 0 && dest->x + dest->w < screenWidth && dest->y > 0 && dest->y + dest->h < screenHeight) { //detects completly in screen. This is dumb.
+			//std::cout << "inside ";
+			isInGameZone = true;
+			isMirror = false;
+			hasMirror = false;
+			boarder = defaultBoarder;
+		}
+		else if (dest->x + dest->w < 0 || dest->x > screenWidth || dest->y + dest->h < 0 || dest->y > screenHeight) { //completly off edge
+			SR.Push(this);
+			//std::cout << "outside ";
+		}
+		else {
+			//std::cout << "middling ";
+		}
+
+		std::cout << std::endl;
+#pragma endregion
+	}
+
+	void ProcessEvents(const Uint8* currentKeyStates, double deltaTime) override {
+
+		if (currentKeyStates[SDL_SCANCODE_Q])
+		{
+			velocityY -= maxVelocityY;
+		}
+		if (currentKeyStates[SDL_SCANCODE_A])
+		{
+			velocityY += maxVelocityY;
+		}
+		Update(deltaTime);
+	}
+};
+
+class PaddleR : public Moveable {
+public:
+	PaddleR(std::string filename, int x = 100, int y = 50, bool mirror = false, int velX = 40, int velY = 40) : Moveable(filename, x, y, mirror, velX, velY) {
+
+	}
+
+	void Move(double deltaTime) {
+
+		//std::cout << "velY: " << velocityY << " | DeltaTime: " << deltaTime << " | Product: " << velocityY * deltaTime << " | New Position: " << dest->y + (velocityY * deltaTime) << std::endl;
+
+		dest->y = std::round(dest->y + (velocityY * deltaTime));
+
+#pragma region countering boarder movement
+		if (blockBoarderMovement) {
+			if ((dest->x <= 0) || (dest->x + dest->w >= screenWidth)) {
+				dest->x -= velocityX * deltaTime;
+				velocityX = 0;
+			}
+			if ((dest->y <= 0) || (dest->y + dest->h >= screenHeight)) {
+				dest->y -= velocityY * deltaTime;
+				velocityY = 0;
+			}
+		}
+#pragma endregion
+
+#pragma region Mirroring
+
+		if (mirrorsAtBoarders && !isMirror && !hasMirror) {
+			//std::cout << "check ";
+			if (dest->x <= 0 - (dest->w * boarder)) {											   // Left
+				//Moveable* plr = new Moveable((dest->w * boarder) + screenWidth + 10, dest->y, true, velocityX, velocityY);
+				Moveable* plr = new Moveable(thisfilename, screenWidth - 1, dest->y, true, velocityX, velocityY);
+				hasMirror = true;
+				isInGameZone = false;
+				//std::cout << "left ";
+			}
+			else if (dest->x + dest->w >= screenWidth + (dest->w * boarder)) {						// Right
+				//Moveable* plr = new Moveable((dest->w * boarder) - screenWidth - 10,dest->y,true, velocityX, velocityY);
+				Moveable* plr = new Moveable(thisfilename, screenWidth + 1, dest->y, true, velocityX, velocityY);
+				hasMirror = true;
+				isInGameZone = false;
+				//std::cout << "right ";
+			}
+			else if (dest->y <= 0 - (dest->h * boarder)) {													// Up
+				//Moveable* plr = new Moveable(dest->x, (dest->h * boarder) + screenHeight + 1, true, velocityX, velocityY);
+				Moveable* plr = new Moveable(thisfilename, dest->x, screenHeight - 1, true, velocityX, velocityY);
+				hasMirror = true;
+				isInGameZone = false;
+				//std::cout << "up ";
+			}
+			else if (dest->y + dest->h >= screenHeight + (dest->h * boarder)) {								// Down
+				//Moveable* plr = new Moveable(dest->x, (dest->h * boarder) - screenHeight - 1, true, velocityX, velocityY);
+				Moveable* plr = new Moveable(thisfilename, dest->x, screenHeight + 1, true, velocityX, velocityY);
+				hasMirror = true;
+				isInGameZone = false;
+				//std::cout << "down ";
+			}
+		}
+#pragma endregion
+
+#pragma region ScreenPosition
+		if (dest->x > 0 && dest->x + dest->w < screenWidth && dest->y > 0 && dest->y + dest->h < screenHeight) { //detects completly in screen. This is dumb.
+			//std::cout << "inside ";
+			isInGameZone = true;
+			isMirror = false;
+			hasMirror = false;
+			boarder = defaultBoarder;
+		}
+		else if (dest->x + dest->w < 0 || dest->x > screenWidth || dest->y + dest->h < 0 || dest->y > screenHeight) { //completly off edge
+			SR.Push(this);
+			//std::cout << "outside ";
+		}
+		else {
+			//std::cout << "middling ";
+		}
+
+		std::cout << std::endl;
+#pragma endregion
+	}
+
+	void ProcessEvents(const Uint8* currentKeyStates, double deltaTime) override {
+
+		if (currentKeyStates[SDL_SCANCODE_E])
+		{
+			velocityY -= maxVelocityY;
+		}
+		if (currentKeyStates[SDL_SCANCODE_D])
+		{
+			velocityY += maxVelocityY;
+		}
+		Update(deltaTime);
+	}
+};
+
+class Ball : public Moveable {
+public:
+	Ball(std::string filename, int x = 100, int y = 50, bool mirror = false, int velX = 40, int velY = 40) : Moveable(filename, x, y, mirror, velX, velY) {
+
+	}
+
+	void Move(double deltaTime) {
+
+		//std::cout << "velY: " << velocityY << " | DeltaTime: " << deltaTime << " | Product: " << velocityY * deltaTime << " | New Position: " << dest->y + (velocityY * deltaTime) << std::endl;
+
+		dest->y = std::round(dest->y + (velocityY * deltaTime));
+
+#pragma region countering boarder movement
+		if (blockBoarderMovement) {
+			if ((dest->x <= 0) || (dest->x + dest->w >= screenWidth)) {
+				dest->x -= velocityX * deltaTime;
+				velocityX = 0;
+			}
+		}
+#pragma endregion
+
+#pragma region Mirroring
+
+		if (mirrorsAtBoarders && !isMirror && !hasMirror) {
+			//std::cout << "check ";
+			if (dest->x <= 0 - (dest->w * boarder)) {											   // Left
+				//Moveable* plr = new Moveable((dest->w * boarder) + screenWidth + 10, dest->y, true, velocityX, velocityY);
+				Moveable* plr = new Moveable(thisfilename, screenWidth - 1, dest->y, true, velocityX, velocityY);
+				hasMirror = true;
+				isInGameZone = false;
+				//std::cout << "left ";
+			}
+			else if (dest->x + dest->w >= screenWidth + (dest->w * boarder)) {						// Right
+				//Moveable* plr = new Moveable((dest->w * boarder) - screenWidth - 10,dest->y,true, velocityX, velocityY);
+				Moveable* plr = new Moveable(thisfilename, screenWidth + 1, dest->y, true, velocityX, velocityY);
+				hasMirror = true;
+				isInGameZone = false;
+				//std::cout << "right ";
+			}
+			else if (dest->y <= 0 - (dest->h * boarder)) {													// Up
+				//Moveable* plr = new Moveable(dest->x, (dest->h * boarder) + screenHeight + 1, true, velocityX, velocityY);
+				Moveable* plr = new Moveable(thisfilename, dest->x, screenHeight - 1, true, velocityX, velocityY);
+				hasMirror = true;
+				isInGameZone = false;
+				//std::cout << "up ";
+			}
+			else if (dest->y + dest->h >= screenHeight + (dest->h * boarder)) {								// Down
+				//Moveable* plr = new Moveable(dest->x, (dest->h * boarder) - screenHeight - 1, true, velocityX, velocityY);
+				Moveable* plr = new Moveable(thisfilename, dest->x, screenHeight + 1, true, velocityX, velocityY);
+				hasMirror = true;
+				isInGameZone = false;
+				//std::cout << "down ";
+			}
+		}
+#pragma endregion
+
+#pragma region ScreenPosition
+		if (dest->x > 0 && dest->x + dest->w < screenWidth && dest->y > 0 && dest->y + dest->h < screenHeight) { //detects completly in screen. This is dumb.
+			//std::cout << "inside ";
+			isInGameZone = true;
+			isMirror = false;
+			hasMirror = false;
+			boarder = defaultBoarder;
+		}
+		else if (dest->x + dest->w < 0 || dest->x > screenWidth || dest->y + dest->h < 0 || dest->y > screenHeight) { //completly off edge
+			SR.Push(this);
+			//std::cout << "outside ";
+		}
+		else {
+			//std::cout << "middling ";
+		}
+
+		std::cout << std::endl;
+#pragma endregion
+	}
+
+	void ProcessEvents(const Uint8* currentKeyStates, double deltaTime) override {
+
+		if (currentKeyStates[SDL_SCANCODE_E])
+		{
+			velocityY -= maxVelocityY;
+		}
+		if (currentKeyStates[SDL_SCANCODE_D])
+		{
+			velocityY += maxVelocityY;
+		}
+		Update(deltaTime);
 	}
 };
 
@@ -667,7 +949,9 @@ int main(int argc, char** args) {
 	float AvgFPS;
 	bool showFPS = false;
 	//-----------------------------------code goes in here-------------------------------------------------
-	Moveable* plr = new Moveable();
+	PaddleR* rightPaddle = new PaddleR("Paddle.png", 1220, 360);
+	PaddleL* leftPaddle = new PaddleL("Paddle.png", 60, 360);
+	Ball* ball = new Ball("Ball.png", 640, 360);
 
 	SDL_Event ev;
 	bool running = true;
