@@ -3,6 +3,7 @@
 #include <SDL_image.h>
 #include <string>
 #include <list> //Linked list library for the renderqueue & activescripts
+#include <ctime> //for srand seeds
 
 #pragma region Compiler Debugging
 //https://lazyfoo.net/tutorials/SDL/01_hello_SDL/windows/msvc2019/index.php
@@ -11,7 +12,7 @@
 // 
 // STEP 1:
 //		CHECK THE DLL IS ACTUALLY THERE
-//		C:\Users\40139037\source\repos\GabionSquared\GraphicsEngine\Project1\SDL2\lib\x64
+//		C:\Users\40139037\source\repos\GabionSquared\GraphicsEngine\Project1\SDL2
 // 
 //		if it isn't, download it again
 //			https://www.libsdl.org/download-2.0.php
@@ -105,24 +106,25 @@ double TowardZero(double num, double strength) {
 }
 
 double TowardZeroD(double num, double strength) {
+
 	double abs = num;
 
-	std::cout << TowardZero(num, strength) << std::endl;
+	//std::cout << TowardZero(num, strength) << std::endl;
 
 	if (num < 0) {
 		abs = num * -1;
 	}
-	std::cout << "abs: " << abs <<"| str: "<< strength << "\n";
+	//std::cout << "abs: " << abs <<"| str: "<< strength << "\n";
 	if (abs < strength || num == 0) {
-		std::cout << "return 0 \n";
+		//std::cout << "return 0 \n";
 		return 0;
 	}
 	if (num < strength) {
-		std::cout << "return num+str \n";
+		//std::cout << "return num+str \n";
 		return num + strength;
 	}
 	if (num > strength) {
-		std::cout << "return num-str \n";
+		//std::cout << "return num-str \n";
 		return num - strength;
 	}
 	return -1;
@@ -234,11 +236,11 @@ public:
 };
 
 class Renderable {
-protected:
+
+public:
 	SDL_Rect* dest = new SDL_Rect;
 	SDL_Texture* Texture;
 
-public:
 	SDL_Rect* GetDest() {
 		return dest;
 	}
@@ -453,7 +455,7 @@ public:
 		/// The problem with this is we currently can't move less than 1px a frame
 		/// need a function that can decide to rythmically drop frames.
 
-		blockBoarderMovement = false;
+		blockBoarderMovement = true;
 		mirrorsAtBoarders = true;
 		//leave both of these false to be deleted offscreen
 		isMirror = mirror;
@@ -472,7 +474,10 @@ public:
 		ASM.Push(this);
 	}
 
-	virtual void Move(double deltaTime) {
+	virtual void Update(double deltaTime) {
+
+		velocityX = TowardZeroD(velocityX, 20);
+		velocityY = TowardZeroD(velocityY, 20);
 
 #pragma region moving
 		//std::cout << "velX: " << velocityX << " | DeltaTime: " << deltaTime << " | Product: " << velocityX * deltaTime << " | New Position: " << dest->x + (velocityX * deltaTime) << std::endl;
@@ -614,13 +619,6 @@ public:
 		Update(deltaTime);
 	}
 
-	virtual void Update(double deltaTime){
-		Move(deltaTime);
-
-		velocityX = TowardZeroD(velocityX, 20);
-		velocityY = TowardZeroD(velocityY, 20);
-	}
-
 	void Kill() {
 		if (isMirror) {
 			RQM.PopFront();
@@ -641,7 +639,10 @@ public:
 
 	}
 
-	void Move(double deltaTime) {
+	void Update(double deltaTime) {
+
+		velocityX = TowardZeroD(velocityX, 20);
+		velocityY = TowardZeroD(velocityY, 20);
 
 		//std::cout << "velY: " << velocityY << " | DeltaTime: " << deltaTime << " | Product: " << velocityY * deltaTime << " | New Position: " << dest->y + (velocityY * deltaTime) << std::endl;
 
@@ -735,7 +736,10 @@ public:
 
 	}
 
-	void Move(double deltaTime) {
+	void Update(double deltaTime) {
+
+		velocityX = TowardZeroD(velocityX, 20);
+		velocityY = TowardZeroD(velocityY, 20);
 
 		//std::cout << "velY: " << velocityY << " | DeltaTime: " << deltaTime << " | Product: " << velocityY * deltaTime << " | New Position: " << dest->y + (velocityY * deltaTime) << std::endl;
 
@@ -825,90 +829,73 @@ public:
 
 class Ball : public Moveable {
 public:
-	Ball(std::string filename, int x = 100, int y = 50, bool mirror = false, int velX = 40, int velY = 40) : Moveable(filename, x, y, mirror, velX, velY) {
+	Ball(std::string filename, int x = 100, int y = 50, bool mirror = false, int velX = 0, int velY = 0) : Moveable(filename, x, y, mirror, velX, velY) {
 
+		Start(300);
 	}
 
-	void Move(double deltaTime) {
-
-		//std::cout << "velY: " << velocityY << " | DeltaTime: " << deltaTime << " | Product: " << velocityY * deltaTime << " | New Position: " << dest->y + (velocityY * deltaTime) << std::endl;
+	void Update(double deltaTime) {
 
 		dest->y = std::round(dest->y + (velocityY * deltaTime));
+		dest->x = std::round(dest->x + (velocityX * deltaTime));
 
-#pragma region countering boarder movement
-		if (blockBoarderMovement) {
-			if ((dest->x <= 0) || (dest->x + dest->w >= screenWidth)) {
-				dest->x -= velocityX * deltaTime;
-				velocityX = 0;
-			}
+#pragma region edge
+
+		if (dest->x <= 0 - (dest->w * 2)) {											// Left
+			Start(300);
+		}
+		else if (dest->x + dest->w >= screenWidth + (dest->w * 2)) {				// Right
+			Start(300);
+		}
+		else if (dest->y <= 0 - (dest->h * boarder)) {								// Up
+
+			velocityY *= -1;
+		}
+		else if (dest->y + dest->h >= screenHeight + (dest->h * boarder)) {			// Down
+
+			velocityY *= -1;
 		}
 #pragma endregion
+	}
 
-#pragma region Mirroring
+	void CollideWithPaddle(Moveable paddle) {
+		//https://i.stack.imgur.com/6iULg.png
 
-		if (mirrorsAtBoarders && !isMirror && !hasMirror) {
-			//std::cout << "check ";
-			if (dest->x <= 0 - (dest->w * boarder)) {											   // Left
-				//Moveable* plr = new Moveable((dest->w * boarder) + screenWidth + 10, dest->y, true, velocityX, velocityY);
-				Moveable* plr = new Moveable(thisfilename, screenWidth - 1, dest->y, true, velocityX, velocityY);
-				hasMirror = true;
-				isInGameZone = false;
-				//std::cout << "left ";
-			}
-			else if (dest->x + dest->w >= screenWidth + (dest->w * boarder)) {						// Right
-				//Moveable* plr = new Moveable((dest->w * boarder) - screenWidth - 10,dest->y,true, velocityX, velocityY);
-				Moveable* plr = new Moveable(thisfilename, screenWidth + 1, dest->y, true, velocityX, velocityY);
-				hasMirror = true;
-				isInGameZone = false;
-				//std::cout << "right ";
-			}
-			else if (dest->y <= 0 - (dest->h * boarder)) {													// Up
-				//Moveable* plr = new Moveable(dest->x, (dest->h * boarder) + screenHeight + 1, true, velocityX, velocityY);
-				Moveable* plr = new Moveable(thisfilename, dest->x, screenHeight - 1, true, velocityX, velocityY);
-				hasMirror = true;
-				isInGameZone = false;
-				//std::cout << "up ";
-			}
-			else if (dest->y + dest->h >= screenHeight + (dest->h * boarder)) {								// Down
-				//Moveable* plr = new Moveable(dest->x, (dest->h * boarder) - screenHeight - 1, true, velocityX, velocityY);
-				Moveable* plr = new Moveable(thisfilename, dest->x, screenHeight + 1, true, velocityX, velocityY);
-				hasMirror = true;
-				isInGameZone = false;
-				//std::cout << "down ";
-			}
-		}
-#pragma endregion
+		//left of the paddle, right of the ball
+		int min = paddle.dest->x;
+		int max = dest->x + dest->w;
 
-#pragma region ScreenPosition
-		if (dest->x > 0 && dest->x + dest->w < screenWidth && dest->y > 0 && dest->y + dest->h < screenHeight) { //detects completly in screen. This is dumb.
-			//std::cout << "inside ";
-			isInGameZone = true;
-			isMirror = false;
-			hasMirror = false;
-			boarder = defaultBoarder;
+		if (paddle.dest->w + dest->w > max - min) {
+			velocityX *= -1;
 		}
-		else if (dest->x + dest->w < 0 || dest->x > screenWidth || dest->y + dest->h < 0 || dest->y > screenHeight) { //completly off edge
-			SR.Push(this);
-			//std::cout << "outside ";
-		}
-		else {
-			//std::cout << "middling ";
-		}
+	}
 
-		std::cout << std::endl;
-#pragma endregion
+	void Start(int speed) {
+		SetDest(screenWidth / 2, screenHeight / 2);
+
+		srand((int)time(0)); //makes rand actually random by seeding it against unix time
+
+		int direction = rand() % 2;
+
+		if (direction == 0) {
+			direction--;
+		}
+		direction *= speed;
+		velocityX = direction;
+
+		direction = rand() % 2;
+		
+		if (direction == 0) {
+			direction--;
+		}
+		direction *= speed;
+		velocityY = direction;
+		//happens twice to make x and y independant of eachother
+
+		std::cout << velocityY << "  " << velocityX;
 	}
 
 	void ProcessEvents(const Uint8* currentKeyStates, double deltaTime) override {
-
-		if (currentKeyStates[SDL_SCANCODE_E])
-		{
-			velocityY -= maxVelocityY;
-		}
-		if (currentKeyStates[SDL_SCANCODE_D])
-		{
-			velocityY += maxVelocityY;
-		}
 		Update(deltaTime);
 	}
 };
