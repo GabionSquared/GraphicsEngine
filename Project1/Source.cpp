@@ -6,7 +6,7 @@
 #include <ctime> //for srand seeds
 
 #pragma region Compiler Debugging
-//https://lazyfoo.net/tutorials/SDL/01_hello_SDL/windows/msvc2019/index.php
+//https://lazyfoo.net/tutorials/SDL/index.php
 
 //SDL2.dll not found
 // 
@@ -45,6 +45,11 @@ int screenWidth = 1280;
 int screenHeight = 720;
 int targetFPS = 60;
 int allowedFrameTicks = 1000 / targetFPS;
+
+#pragma warning( disable : 4244 )
+// '=' conversion from 'double' to 'int', possible loss of data
+#pragma warning( disable : 4267 )
+// 'return' conversion from 'size_t' to 'int', possible loss of data
 
 int Init() {
 	// Initialize SDL. SDL_Init will return -1 if it fails.
@@ -633,9 +638,9 @@ public:
 	}
 };
 
-class PaddleL : public Moveable {
+class Paddle : public Moveable {
 public:
-	PaddleL(std::string filename, int x = 100, int y = 50, bool mirror = false, int velX = 40, int velY = 40) : Moveable(filename, x, y, mirror, velX, velY) {
+	Paddle(std::string filename, int x = 100, int y = 50, bool mirror = false, int velX = 40, int velY = 40) : Moveable(filename, x, y, mirror, velX, velY) {
 
 	}
 
@@ -649,14 +654,19 @@ public:
 		dest->y = std::round(dest->y + (velocityY * deltaTime));
 
 #pragma region countering boarder movement
+		//fish up the old one if you want it. used axis with || on either side and countered velocity. got rid of it because got stuck when moving fast enough to dodge the boarders.
 		if (blockBoarderMovement) {
-			if ((dest->x <= 0) || (dest->x + dest->w >= screenWidth)) {
-				dest->x -= velocityX * deltaTime;
-				velocityX = 0;
+			if ((dest->x < 0)) {
+				dest->x = 0;
 			}
-			if ((dest->y <= 0) || (dest->y + dest->h >= screenHeight)) {
-				dest->y -= velocityY * deltaTime;
-				velocityY = 0;
+			if (dest->x + dest->w > screenWidth) {
+				dest->x = screenWidth;
+			}
+			if (dest->y < 0) {
+				dest->y = 0;
+			}
+			if (dest->y + dest->h > screenHeight) {
+				dest->y = screenHeight-dest->h;
 			}
 		}
 #pragma endregion
@@ -718,116 +728,34 @@ public:
 
 	void ProcessEvents(const Uint8* currentKeyStates, double deltaTime) override {
 
-		if (currentKeyStates[SDL_SCANCODE_Q])
-		{
-			velocityY -= maxVelocityY;
-		}
-		if (currentKeyStates[SDL_SCANCODE_A])
-		{
-			velocityY += maxVelocityY;
-		}
-		Update(deltaTime);
-	}
-};
-
-class PaddleR : public Moveable {
-public:
-	PaddleR(std::string filename, int x = 100, int y = 50, bool mirror = false, int velX = 40, int velY = 40) : Moveable(filename, x, y, mirror, velX, velY) {
-
-	}
-
-	void Update(double deltaTime) {
-
-		velocityX = TowardZeroD(velocityX, 20);
-		velocityY = TowardZeroD(velocityY, 20);
-
-		//std::cout << "velY: " << velocityY << " | DeltaTime: " << deltaTime << " | Product: " << velocityY * deltaTime << " | New Position: " << dest->y + (velocityY * deltaTime) << std::endl;
-
-		dest->y = std::round(dest->y + (velocityY * deltaTime));
-
-#pragma region countering boarder movement
-		if (blockBoarderMovement) {
-			if ((dest->x <= 0) || (dest->x + dest->w >= screenWidth)) {
-				dest->x -= velocityX * deltaTime;
-				velocityX = 0;
+		if (dest->x < 1000) {
+			if (currentKeyStates[SDL_SCANCODE_Q])
+			{
+				velocityY -= maxVelocityY;
 			}
-			if ((dest->y <= 0) || (dest->y + dest->h >= screenHeight)) {
-				dest->y -= velocityY * deltaTime;
-				velocityY = 0;
+			if (currentKeyStates[SDL_SCANCODE_A])
+			{
+				velocityY += maxVelocityY;
 			}
-		}
-#pragma endregion
-
-#pragma region Mirroring
-
-		if (mirrorsAtBoarders && !isMirror && !hasMirror) {
-			//std::cout << "check ";
-			if (dest->x <= 0 - (dest->w * boarder)) {											   // Left
-				//Moveable* plr = new Moveable((dest->w * boarder) + screenWidth + 10, dest->y, true, velocityX, velocityY);
-				Moveable* plr = new Moveable(thisfilename, screenWidth - 1, dest->y, true, velocityX, velocityY);
-				hasMirror = true;
-				isInGameZone = false;
-				//std::cout << "left ";
-			}
-			else if (dest->x + dest->w >= screenWidth + (dest->w * boarder)) {						// Right
-				//Moveable* plr = new Moveable((dest->w * boarder) - screenWidth - 10,dest->y,true, velocityX, velocityY);
-				Moveable* plr = new Moveable(thisfilename, screenWidth + 1, dest->y, true, velocityX, velocityY);
-				hasMirror = true;
-				isInGameZone = false;
-				//std::cout << "right ";
-			}
-			else if (dest->y <= 0 - (dest->h * boarder)) {													// Up
-				//Moveable* plr = new Moveable(dest->x, (dest->h * boarder) + screenHeight + 1, true, velocityX, velocityY);
-				Moveable* plr = new Moveable(thisfilename, dest->x, screenHeight - 1, true, velocityX, velocityY);
-				hasMirror = true;
-				isInGameZone = false;
-				//std::cout << "up ";
-			}
-			else if (dest->y + dest->h >= screenHeight + (dest->h * boarder)) {								// Down
-				//Moveable* plr = new Moveable(dest->x, (dest->h * boarder) - screenHeight - 1, true, velocityX, velocityY);
-				Moveable* plr = new Moveable(thisfilename, dest->x, screenHeight + 1, true, velocityX, velocityY);
-				hasMirror = true;
-				isInGameZone = false;
-				//std::cout << "down ";
-			}
-		}
-#pragma endregion
-
-#pragma region ScreenPosition
-		if (dest->x > 0 && dest->x + dest->w < screenWidth && dest->y > 0 && dest->y + dest->h < screenHeight) { //detects completly in screen. This is dumb.
-			//std::cout << "inside ";
-			isInGameZone = true;
-			isMirror = false;
-			hasMirror = false;
-			boarder = defaultBoarder;
-		}
-		else if (dest->x + dest->w < 0 || dest->x > screenWidth || dest->y + dest->h < 0 || dest->y > screenHeight) { //completly off edge
-			SR.Push(this);
-			//std::cout << "outside ";
 		}
 		else {
-			//std::cout << "middling ";
-		}
-
-		std::cout << std::endl;
-#pragma endregion
-	}
-
-	void ProcessEvents(const Uint8* currentKeyStates, double deltaTime) override {
-
-		if (currentKeyStates[SDL_SCANCODE_E])
-		{
-			velocityY -= maxVelocityY;
-		}
-		if (currentKeyStates[SDL_SCANCODE_D])
-		{
-			velocityY += maxVelocityY;
+			if (currentKeyStates[SDL_SCANCODE_E])
+			{
+				velocityY -= maxVelocityY;
+			}
+			if (currentKeyStates[SDL_SCANCODE_D])
+			{
+				velocityY += maxVelocityY;
+			}
 		}
 		Update(deltaTime);
 	}
 };
 
 class Ball : public Moveable {
+	Paddle rightPaddle = Paddle("Paddle.png", 1220, 360);;
+	Paddle leftPaddle = Paddle("Paddle.png", 60, 360);
+
 public:
 	Ball(std::string filename, int x = 100, int y = 50, bool mirror = false, int velX = 0, int velY = 0) : Moveable(filename, x, y, mirror, velX, velY) {
 
@@ -839,7 +767,10 @@ public:
 		dest->y = std::round(dest->y + (velocityY * deltaTime));
 		dest->x = std::round(dest->x + (velocityX * deltaTime));
 
-#pragma region edge
+		CollideWithPaddle(rightPaddle);
+		CollideWithPaddle(leftPaddle);
+
+#pragma region edging
 
 		if (dest->x <= 0 - (dest->w * 2)) {											// Left
 			Start(300);
@@ -848,24 +779,55 @@ public:
 			Start(300);
 		}
 		else if (dest->y <= 0 - (dest->h * boarder)) {								// Up
-
 			velocityY *= -1;
 		}
 		else if (dest->y + dest->h >= screenHeight + (dest->h * boarder)) {			// Down
-
 			velocityY *= -1;
 		}
 #pragma endregion
 	}
 
-	void CollideWithPaddle(Moveable paddle) {
+	//COLLIDER
+	void CollideWithPaddle(Paddle paddle) {
 		//https://i.stack.imgur.com/6iULg.png
 
 		//left of the paddle, right of the ball
-		int min = paddle.dest->x;
-		int max = dest->x + dest->w;
+		int min = 0;
+		int max = 0;
+
+		bool collidingX = false;
+		bool collidingY = false;
+
+#pragma region X
+		if (paddle.dest->x < dest->x) { //paddle is on the left
+			min = paddle.dest->x;
+			max = dest->x + dest->w;
+		}
+		else {							//paddle is on the right
+			min = dest->x;
+			max = paddle.dest->x + paddle.dest->w;
+		}
 
 		if (paddle.dest->w + dest->w > max - min) {
+			collidingX = true;
+		}
+#pragma
+
+#pragma region Y
+		if (paddle.dest->y > dest->y) { //paddle is under
+			min = dest->y;
+			max = paddle.dest->y + paddle.dest->h;
+		}
+		else {							//paddle is over
+			min = paddle.dest->y;
+			max = dest->y + dest->h;
+		}
+
+		if (paddle.dest->h + dest->h > max - min) {
+			collidingY = true;
+		}
+#pragma
+		if (collidingX && collidingY) {
 			velocityX *= -1;
 		}
 	}
@@ -936,8 +898,6 @@ int main(int argc, char** args) {
 	float AvgFPS;
 	bool showFPS = false;
 	//-----------------------------------code goes in here-------------------------------------------------
-	PaddleR* rightPaddle = new PaddleR("Paddle.png", 1220, 360);
-	PaddleL* leftPaddle = new PaddleL("Paddle.png", 60, 360);
 	Ball* ball = new Ball("Ball.png", 640, 360);
 
 	SDL_Event ev;
