@@ -242,6 +242,7 @@
     <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Windows Kits\10\Include\10.0.19041.0\ucrt\time.h" />
     <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Windows Kits\10\Include\10.0.19041.0\ucrt\wchar.h" />
     <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Windows Kits\10\Include\10.0.19041.0\um\winsdkver.h" />
+    <ClInclude Include="Player.h" />
     <ClInclude Include="SDL2\include\begin_code.h" />
     <ClInclude Include="SDL2\include\close_code.h" />
     <ClInclude Include="SDL2\include\SDL.h" />
@@ -294,6 +295,7 @@
     <ClInclude Include="SDL2_image\include\SDL_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Player.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -15,8 +15,8 @@
 //		C:\Users\40139037\source\repos\GabionSquared\GraphicsEngine\Project1\SDL2
 // 
 //		if it isn't, download it again
-//			https://www.libsdl.org/download-2.0.php
-//			https://www.libsdl.org/projects/SDL_image/
+//			https://github.com/libsdl-org/SDL/releases/tag/release-2.24.0
+//			https://github.com/libsdl-org/SDL_image/releases
 // 
 // STEP 2:
 //		FIX PATH
