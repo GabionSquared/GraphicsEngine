@@ -5,6 +5,16 @@
 #include <list> //Linked list library for the renderqueue & activescripts
 #include <ctime> //for srand seeds
 
+SDL_Surface* winSurface = NULL;
+SDL_Window* Window = NULL;
+SDL_Renderer* Renderer = NULL;
+int screenWidth = 1280;
+int screenHeight = 720;
+int targetFPS = 60;
+int allowedFrameTicks = 1000 / targetFPS;
+
+#include "Renderable.h"
+
 #pragma region Compiler Debugging
 //https://lazyfoo.net/tutorials/SDL/index.php
 
@@ -165,6 +175,7 @@ SDL_Texture* LoadTexture(std::string path)
 	return newTexture;
 }
 
+
 class Timer {
 	int startTicks;
 	int pausedTicks;
@@ -240,6 +251,7 @@ public:
 	}
 };
 
+/*
 class Renderable {
 
 public:
@@ -282,6 +294,7 @@ public:
 		SetDest(x - (dest->w/2), y - (dest->h/2));
 	}
 };
+*/
 
 class ActiveScript {
 public:
