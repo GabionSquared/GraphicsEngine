@@ -242,6 +242,7 @@
     <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Windows Kits\10\Include\10.0.19041.0\ucrt\time.h" />
     <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Windows Kits\10\Include\10.0.19041.0\ucrt\wchar.h" />
     <ClInclude Include="..\..\..\..\..\..\..\Program Files (x86)\Windows Kits\10\Include\10.0.19041.0\um\winsdkver.h" />
+    <ClInclude Include="GameObject.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Renderable.h" />
     <ClInclude Include="SDL2\include\begin_code.h" />
@@ -297,10 +298,15 @@
     <ClInclude Include="Timer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Source.cpp" />
     <ClCompile Include="Renderable.cpp" />
     <ClCompile Include="Timer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="ActiveScript.txt" />
+    <Text Include="OldMovables.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
