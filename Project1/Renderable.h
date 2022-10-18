@@ -9,7 +9,7 @@ public:
 	SDL_Texture* Texture;
 	SDL_Renderer* r;
 
-	Renderable(std::string  filename, int x = 100, int y = 50);
+	Renderable(std::string  filename, SDL_Renderer* Renderer, int x, int y);
 
 
 	SDL_Rect* GetDest();

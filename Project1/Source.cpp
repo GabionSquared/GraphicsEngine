@@ -3,17 +3,11 @@
 #include <SDL_image.h>
 #include <string>
 #include <list> //Linked list library for the renderqueue & activescripts
-#include <ctime> //for srand seeds
-
-SDL_Surface* winSurface = NULL;
-SDL_Window* Window = NULL;
-SDL_Renderer* Renderer = NULL;
-int screenWidth = 1280;
-int screenHeight = 720;
-int targetFPS = 60;
-int allowedFrameTicks = 1000 / targetFPS;
+#include <ctime> //for srand seeds, inside ball spawning
 
 #include "Renderable.h"
+#include "Timer.h"
+
 
 #pragma region Compiler Debugging
 //https://lazyfoo.net/tutorials/SDL/index.php
@@ -145,37 +139,7 @@ double TowardZeroD(double num, double strength) {
 	return -1;
 }
 
-SDL_Texture* LoadTexture(std::string path)
-{
-	//The final texture
-	SDL_Texture* newTexture = NULL;
-
-	//Load image at specified path
-	SDL_Surface* loadedSurface = IMG_Load(path.c_str());
-	if (loadedSurface == NULL)
-	{
-		printf("Unable to load image %s! SDL_image Error: %s\n", path.c_str(), IMG_GetError());
-	}
-	else
-	{
-		//Create texture from surface pixels
-		newTexture = SDL_CreateTextureFromSurface(Renderer, loadedSurface);
-		if (newTexture == NULL)
-		{
-			printf("Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError());
-		}
-
-		//Get rid of old loaded surface
-		SDL_FreeSurface(loadedSurface);
-	}
-	SDL_RenderCopy(Renderer, newTexture, NULL, NULL);
-
-	//SDL_DestroyTexture( Texture );
-
-	return newTexture;
-}
-
-
+/*
 class Timer {
 	int startTicks;
 	int pausedTicks;
@@ -248,50 +212,6 @@ public:
 	}
 	bool IsStarted() {
 		return started;
-	}
-};
-
-/*
-class Renderable {
-
-public:
-	SDL_Rect* dest = new SDL_Rect;
-	SDL_Texture* Texture;
-
-	SDL_Rect* GetDest() {
-		return dest;
-	}
-
-	std::string GetDestVerbose() {
-		return "x: " + std::to_string(dest->x) + "   y: " + std::to_string(dest->y);
-	}
-
-	void SetDest(int x, int y) {
-		dest->x = x;
-		dest->y = y;
-	}
-
-	SDL_Texture* GetText() {
-		return Texture;
-	}
-
-	void SetText(SDL_Texture* tex) {
-		Texture = tex;
-		SDL_Point size;
-		SDL_QueryTexture(tex, NULL, NULL, &size.x, &size.y);
-		dest->w = size.x;
-		dest->h = size.y;
-		//std::cout << "width: " << dest->w;
-	}
-
-	Renderable(std::string  filename, int x = 100, int y = 50) {
-
-		//std::string path = R"(Sunkist.png)";
-		std::string path = filename;
-
-		SetText(LoadTexture(path));
-
-		SetDest(x - (dest->w/2), y - (dest->h/2));
 	}
 };
 */
@@ -461,7 +381,7 @@ protected:
 	std::string thisfilename;
 
 public:
-	Moveable(std::string filename, int x = 100, int y = 50, bool mirror = false, int velX = 40, int velY = 40) : Renderable(filename, x, y){
+	Moveable(std::string filename, int x = 100, int y = 50, bool mirror = false, int velX = 40, int velY = 40) : Renderable(filename, Renderer, x, y){
 		thisfilename = filename;
 
 		velocityX = velX;

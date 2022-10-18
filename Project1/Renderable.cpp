@@ -1,6 +1,6 @@
 #include "Renderable.h"
 
-SDL_Texture* LoadTexture(std::string path)
+SDL_Texture* LoadTexture(std::string path, SDL_Renderer* Renderer)
 {
 	//The final texture
 	SDL_Texture* newTexture = NULL;
@@ -30,16 +30,6 @@ SDL_Texture* LoadTexture(std::string path)
 	return newTexture;
 }
 
-/*
-class Renderable {
-
-public:
-	SDL_Rect* dest = new SDL_Rect;
-	SDL_Texture* Texture;
-
-}
-*/
-
 SDL_Rect* Renderable::GetDest() {
 	return dest;
 }
@@ -66,13 +56,13 @@ void Renderable::SetText(SDL_Texture* tex) {
 	//std::cout << "width: " << dest->w;
 }
 
-Renderable::Renderable(std::string  filename, int x = 100, int y = 50) {
+Renderable::Renderable(std::string  filename, SDL_Renderer* Renderer, int x = 100, int y = 50) {
 	dest = new SDL_Rect;
 
 	//std::string path = R"(Sunkist.png)";
 	std::string path = filename;
 
-	SetText(LoadTexture(path));
+	SetText(LoadTexture(path, Renderer));
 
 	SetDest(x - (dest->w / 2), y - (dest->h / 2));
 }
