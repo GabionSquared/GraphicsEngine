@@ -5,6 +5,8 @@
 #include <list> //Linked list library for the renderqueue & activescripts
 #include <ctime> //for srand seeds
 
+#include "BackendTypes.h"
+
 #pragma region Compiler Debugging
 //https://lazyfoo.net/tutorials/SDL/index.php
 
@@ -36,13 +38,15 @@
 //Can't see the full project list
 //
 //got to folder view in solution explorer (has just the folder and the .sln) and double click on the .sln
-#pragma endregion Compiler Debugging
+#pragma endregion
 
 SDL_Surface* winSurface = NULL;
 SDL_Window* Window = NULL;
 SDL_Renderer* Renderer = NULL;
-int screenWidth = 1280;
-int screenHeight = 720;
+//int screenWidth = 1280;
+//int screenHeight = 720;
+int screenWidth = 1000;
+int screenHeight = 600;
 int targetFPS = 60;
 int allowedFrameTicks = 1000 / targetFPS;
 
@@ -101,68 +105,6 @@ int Init() {
 	}
 
 	return -1;
-}
-
-double TowardZero(double num, double strength) {
-	return num == 0 || (num < strength ? num*-1 : num) < strength ? 0 : num > strength ? num - strength : num + strength;
-	//if num = 0 or abs(num) < str, return 0. num > str, return num-str. else, return num+str.
-
-	//this has started causing passive force and i dont know why
-}
-
-double TowardZeroD(double num, double strength) {
-
-	double abs = num;
-
-	//std::cout << TowardZero(num, strength) << std::endl;
-
-	if (num < 0) {
-		abs = num * -1;
-	}
-	//std::cout << "abs: " << abs <<"| str: "<< strength << "\n";
-	if (abs < strength || num == 0) {
-		//std::cout << "return 0 \n";
-		return 0;
-	}
-	if (num < strength) {
-		//std::cout << "return num+str \n";
-		return num + strength;
-	}
-	if (num > strength) {
-		//std::cout << "return num-str \n";
-		return num - strength;
-	}
-	return -1;
-}
-
-SDL_Texture* LoadTexture(std::string path)
-{
-	//The final texture
-	SDL_Texture* newTexture = NULL;
-
-	//Load image at specified path
-	SDL_Surface* loadedSurface = IMG_Load(path.c_str());
-	if (loadedSurface == NULL)
-	{
-		printf("Unable to load image %s! SDL_image Error: %s\n", path.c_str(), IMG_GetError());
-	}
-	else
-	{
-		//Create texture from surface pixels
-		newTexture = SDL_CreateTextureFromSurface(Renderer, loadedSurface);
-		if (newTexture == NULL)
-		{
-			printf("Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError());
-		}
-
-		//Get rid of old loaded surface
-		SDL_FreeSurface(loadedSurface);
-	}
-	SDL_RenderCopy(Renderer, newTexture, NULL, NULL);
-
-	//SDL_DestroyTexture( Texture );
-
-	return newTexture;
 }
 
 class Timer {
@@ -240,62 +182,6 @@ public:
 	}
 };
 
-class Renderable {
-
-public:
-	SDL_Rect* dest = new SDL_Rect;
-	SDL_Texture* Texture;
-
-	SDL_Rect* GetDest() {
-		return dest;
-	}
-
-	std::string GetDestVerbose() {
-		return "x: " + std::to_string(dest->x) + "   y: " + std::to_string(dest->y);
-	}
-
-	void SetDest(int x, int y) {
-		dest->x = x;
-		dest->y = y;
-	}
-
-	SDL_Texture* GetText() {
-		return Texture;
-	}
-
-	void SetText(SDL_Texture* tex) {
-		Texture = tex;
-		SDL_Point size;
-		SDL_QueryTexture(tex, NULL, NULL, &size.x, &size.y);
-		dest->w = size.x;
-		dest->h = size.y;
-		//std::cout << "width: " << dest->w;
-	}
-
-	Renderable(std::string  filename, int x = 100, int y = 50) {
-
-		//std::string path = R"(Sunkist.png)";
-		std::string path = filename;
-
-		SetText(LoadTexture(path));
-
-		SetDest(x - (dest->w/2), y - (dest->h/2));
-	}
-};
-
-class ActiveScript {
-public:
-	ActiveScript() {
-
-	}
-
-	virtual void ProcessEvents(const Uint8* currentKeyStates, double deltaTime) {
-
-	}
-	virtual void Kill() {
-
-	}
-};
 
 class RenderQueueManager {
 
@@ -448,7 +334,7 @@ protected:
 	std::string thisfilename;
 
 public:
-	Moveable(std::string filename, int x = 100, int y = 50, bool mirror = false, int velX = 40, int velY = 40) : Renderable(filename, x, y){
+	Moveable(std::string filename, int x = 100, int y = 50, bool mirror = false, int velX = 40, int velY = 40) : Renderable(filename, Renderer, x, y){
 		thisfilename = filename;
 
 		velocityX = velX;
