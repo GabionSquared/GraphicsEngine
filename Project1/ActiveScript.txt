@@ -1,0 +1,13 @@
+class ActiveScript {
+public:
+	ActiveScript() {
+
+	}
+
+	virtual void ProcessEvents(const Uint8* currentKeyStates, double deltaTime) {
+
+	}
+	virtual void Kill() {
+
+	}
+};
