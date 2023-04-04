@@ -16,6 +16,8 @@ using namespace std;
 	The GameManager maintains a set of lists of all in game objects and uses
 	these to manage the resources and states in game.
 -------------------------------------------------------------------------*/
+#pragma warning( disable : 4018 ) // '<': signed / unsigned mismatch
+
 class GameManager {
 int bricks;
 public:
