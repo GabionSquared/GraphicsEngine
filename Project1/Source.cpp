@@ -4,6 +4,7 @@
 #include "Player.h"
 #include "Ball.h"
 #include "Brick.h"
+#include "Menu.h"
 
 using namespace std;
 
@@ -34,9 +35,12 @@ int main(int argc, char** argv) {
 	//resources
 	GameManager manager(SCREEN_WIDTH, SCREEN_HEIGHT);
 
+
 	//                     x                    y           w    h   tid
 	Player player((SCREEN_WIDTH/2)-50, (SCREEN_HEIGHT-40), 100, 20, 1);
 	Ball ball(500, 300, 20, 20, 1);
+	Menu menu(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 1);
+	manager.addToMenuList(&menu);
 
 	Brick bricks[40];
 	
@@ -46,9 +50,9 @@ int main(int argc, char** argv) {
 	{
 		for (int x = 0; x < 10; x++)
 		{
-			bricks[brickID].position.x = ((SCREEN_WIDTH / 10) * x) + 2.;
+			bricks[brickID].position.x = ((SCREEN_WIDTH / static_cast<double>(10)) * x) + 2.;
 			bricks[brickID].position.y = 20 * y + 5;
-			bricks[brickID].id = brickID;
+			bricks[brickID].id = brickID; 
 			
 			manager.addToDrawList(&bricks[brickID]);
 			manager.addToBrickList(&bricks[brickID]);

@@ -16,7 +16,7 @@ public:
 
 	//variables
 	SDL_Surface* image;		//holds bmp image if one is loaded.
-	SDL_Rect		position;	//holds x, y, w and h of object
+	SDL_Rect     position;	//holds x, y, w and h of object
 
 	bool active;
 
