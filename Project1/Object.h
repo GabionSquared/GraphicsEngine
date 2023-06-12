@@ -1,7 +1,16 @@
 #pragma once
 #include <SDL.h>
 #include <iostream>
+#include <vector>
+
+#include <glew.h>
+#include <SDL_opengl.h>
 using namespace std;
+
+//we make our 3d models manually :gigachad:
+struct Vertex {
+	float x, y, z;
+};
 
 /*-------------------------------------------------------------------
 	Object class:
@@ -12,13 +21,47 @@ using namespace std;
 	elements based on this will know how to draw automatically.
 -------------------------------------------------------------------*/
 class Object {
-public:
+protected:
 
+	vector<Vertex> Verticies() {
+		// Define the vertices of the cubeoid
+		vector<Vertex> vertices;
+		vertices.push_back({ -1.0f, -1.0f, -1.0f }); // Front bottom left
+		vertices.push_back({ 1.0f, -1.0f, -1.0f });  // Front bottom right
+		vertices.push_back({ 1.0f, 1.0f, -1.0f });   // Front top right
+		vertices.push_back({ -1.0f, 1.0f, -1.0f });  // Front top left
+		vertices.push_back({ -1.0f, -1.0f, 1.0f });  // Back bottom left
+		vertices.push_back({ 1.0f, -1.0f, 1.0f });   // Back bottom right
+		vertices.push_back({ 1.0f, 1.0f, 1.0f });    // Back top right
+		vertices.push_back({ -1.0f, 1.0f, 1.0f });   // Back top left
+
+		//vector<Vertex>* _vertices = & vertices; //compiler was being weird
+		return vertices;
+	}
+
+	void GenerateVBO() {
+		vector<Vertex> Vertices = Verticies();
+		//compiler was (still) being weird. who cares, it's local. Is this a memory leak? probably /shrug
+
+		glGenBuffers(1, &vbo);
+
+		// Bind the VBO
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+		// Upload the vertex data to the VBO
+		glBufferData(GL_ARRAY_BUFFER, Vertices.size() * sizeof(Vertex), Vertices.data(), GL_STATIC_DRAW);
+
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+		glEnableVertexAttribArray(0);
+	}
+
+public:
 	//variables
 	SDL_Surface* image;		//holds bmp image if one is loaded.
-	SDL_Rect		position;	//holds x, y, w and h of object
-
+	SDL_Rect	position;	//holds x, y, w and h of object
 	bool active;
+
+	GLuint vbo; //vertex buffer object
 
 	//functions
 	Object() {	//constructor
@@ -51,4 +94,3 @@ public:
 	}
 
 };
-

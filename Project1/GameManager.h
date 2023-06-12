@@ -2,7 +2,8 @@
 #include <SDL.h>
 #include <iostream>
 #include "Object.h"
-#include <vector>
+#include <glew.h>
+#include <SDL_opengl.h>
 using namespace std;
 
 /*-------------------------------------------------------------------------
@@ -20,6 +21,8 @@ using namespace std;
 
 class GameManager {
 int bricks;
+SDL_GLContext glContext;
+
 public:
 	SDL_Window* window;		//current window
 	SDL_Surface* screen;	//visible screen surface
@@ -33,7 +36,24 @@ public:
 	//constructor
 	GameManager(int width, int height) {
 		SDL_Init(SDL_INIT_EVERYTHING);
-		window = SDL_CreateWindow("BrickBreaker", 50, 50, width, height, SDL_WINDOW_SHOWN);
+		//opengl wangjangling
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+
+		window = SDL_CreateWindow("BrickBreaker", 50, 50, width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+		glContext = SDL_GL_CreateContext(window);
+
+		//idk what glew is. something about function pointers.
+		glewExperimental = GL_TRUE;
+		GLenum glewError = glewInit();
+		if (glewError != GLEW_OK) {
+			printf("Error initializing GLEW: %s\n", glewGetErrorString(glewError));
+		}
+
+		glViewport(0, 0, width, height);
+		
+
 		screen = SDL_GetWindowSurface(window);
 		running = true;
 		bricks = 40;
@@ -58,15 +78,26 @@ public:
 			update();
 
 			//redraw screen
-			SDL_FillRect(screen, NULL, 0x000000);
+			//SDL_FillRect(screen, NULL, 0x000000);
+			// Clear the screen
+			//glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+			//glClear(GL_COLOR_BUFFER_BIT);
+
 			drawLevel();
-			SDL_UpdateWindowSurface(window);
+
+			//"swap the buffer". dont know what that means.
+			SDL_GL_SwapWindow(window);
+			//SDL_UpdateWindowSurface(window);
 		}
 	}
 
 	void quit() {
 		SDL_FreeSurface(screen);
 		SDL_DestroyWindow(window);
+
+		SDL_GL_DeleteContext(glContext);
+		SDL_DestroyWindow(window);
+		SDL_Quit();
 	}
 
 	void notify(char m) {
@@ -136,9 +167,29 @@ public:
 	}
 
 	void drawLevel() {
-
+		/*
 		for (int i = 0; i < drawList.size(); i++) {
 			drawList.at(i)->draw(window, screen);
+		}
+		*/
+
+		//glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		//what is a model-view-projection matrix
+		for (const auto& object : drawList) {
+			// Bind the VBO
+			glBindBuffer(GL_ARRAY_BUFFER, object->vbo);
+
+			// Specify the vertex attributes
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+			glEnableVertexAttribArray(0);
+
+			// Draw the object
+			glDrawArrays(GL_QUADS, 0, 8 /* number of vertices in the object */);
+
+			// Disable the vertex attribute array
+			glDisableVertexAttribArray(0);
 		}
 	}
 

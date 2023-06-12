@@ -11,11 +11,29 @@
 	versions of the move() and react() functions()).
 -----------------------------------------------------------------*/
 class Brick : public Object {
+	vector<Vertex> Verticies() {
+		// Define the vertices of the cubeoid
+		std::vector<Vertex> vertices;
+		vertices.push_back({ -1.0f, -1.0f, -1.0f }); // Front bottom left
+		vertices.push_back({ 1.0f, -1.0f, -1.0f });  // Front bottom right
+		vertices.push_back({ 1.0f, 1.0f, -1.0f });   // Front top right
+		vertices.push_back({ -1.0f, 1.0f, -1.0f });  // Front top left
+		vertices.push_back({ -1.0f, -1.0f, 1.0f });  // Back bottom left
+		vertices.push_back({ 1.0f, -1.0f, 1.0f });   // Back bottom right
+		vertices.push_back({ 1.0f, 1.0f, 1.0f });    // Back top right
+		vertices.push_back({ -1.0f, 1.0f, 1.0f });   // Back top left
+
+		//vector<Vertex>* _vertices = &vertices; //compiler was being weird
+		return vertices;
+	}
+
+
 public:
 	int id;
 
 	//default constructor
 	Brick() {
+		GenerateVBO();
 		position.x = 0;
 		position.y = 0;
 		position.w = 75;

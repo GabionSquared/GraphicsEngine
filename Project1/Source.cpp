@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
 	{
 		for (int x = 0; x < 10; x++)
 		{
-			bricks[brickID].position.x = ((SCREEN_WIDTH / 10) * x) + 2.;
+			bricks[brickID].position.x = ((SCREEN_WIDTH / static_cast<double>(10)) * x) + 2.;
 			bricks[brickID].position.y = 20 * y + 5;
 			bricks[brickID].id = brickID;
 			

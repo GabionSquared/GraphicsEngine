@@ -11,11 +11,29 @@
 	versions of the move() and react() functions()).
 -----------------------------------------------------------------*/
 class Player : public Object {
+	vector<Vertex> Verticies() {
+		// Define the vertices of the cubeoid
+		vector<Vertex> vertices;
+		vertices.push_back({ -1.0f, -1.0f, -1.0f }); // Front bottom left
+		vertices.push_back({ 1.0f, -1.0f, -1.0f });  // Front bottom right
+		vertices.push_back({ 1.0f, 1.0f, -1.0f });   // Front top right
+		vertices.push_back({ -1.0f, 1.0f, -1.0f });  // Front top left
+		vertices.push_back({ -1.0f, -1.0f, 1.0f });  // Back bottom left
+		vertices.push_back({ 1.0f, -1.0f, 1.0f });   // Back bottom right
+		vertices.push_back({ 1.0f, 1.0f, 1.0f });    // Back top right
+		vertices.push_back({ -1.0f, 1.0f, 1.0f });   // Back top left
+
+		//vector<Vertex>* _vertices = & vertices; //compiler was being weird
+		return vertices;
+	}
+
 public:
 	int id;
+	vector<Vertex> model;
 
 	//default constructor
 	Player() {
+		GenerateVBO();
 		position.x = 0;
 		position.y = 0;
 		position.w = 20;
